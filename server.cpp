@@ -285,7 +285,7 @@ class WebSocketServer {
             if(it == m_sessions.end()) return;
 
             if(it->second->did_enter_game()) {
-                it->second->player->deletionReason = 0x02;
+                it->second->player->deletion_reason = 0x02;
                 game_world.mark_for_deletion(it->second->player->id);
             }
             m_sessions.erase(hdl);
