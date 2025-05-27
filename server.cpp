@@ -268,6 +268,7 @@ class WebSocketServer {
 
                 for(uint16_t id: game_world.pending_deletions) {
                     game_world.delete_player(id);
+                    game_world.pending_deletions.erase(id);
                 }
                 std::this_thread::sleep_until(then);
             }
