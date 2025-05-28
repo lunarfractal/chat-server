@@ -52,7 +52,7 @@ std::u16string getU16String(const std::vector<uint8_t>& data, int &offset) {
         throw std::out_of_range("offset is out of bounds");
     }
 
-    for (; offset + 1 < data.size(); offset += 2) {
+    for (; offset < data.size(); offset += 2) {
         char16_t ch = static_cast<char16_t>(data[offset] | (data[offset + 1] << 8));
         if (ch == u'\0') {
             break;
@@ -70,7 +70,7 @@ std::string getString(const std::vector<uint8_t>& data, int &offset) {
         throw std::out_of_range("offset is out of bounds");
     }
 
-    for (; offset + 1 < data.size(); offset += 1) {
+    for (; offset < data.size(); offset++) {
         char ch = data[offset];
         if (ch == '\0') {
             break;
