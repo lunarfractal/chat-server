@@ -12,7 +12,7 @@ namespace game {
 struct Player {
     uint16_t x = 0, y = 0;
     uint16_t id;
-    uint16_t roomId = 3;
+    std::string room_id;
     std::u16string nick;
     std::shared_ptr<net::session> session;
 
@@ -26,7 +26,7 @@ struct Player {
     }
 
     bool hasInView(std::shared_ptr<Player> player0) {
-        return player0->roomId == roomId;
+        return player0->room_id == room_id;
     }
 };
 
