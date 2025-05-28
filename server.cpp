@@ -329,7 +329,7 @@ class WebSocketServer {
 
             std::string room_id = "lobby";
 
-            std::unordered_map<std::string, std::string> query = parse_query(path);
+            std::unordered_map<std::string, std::string> query = utils::parse_query(path);
 
             auto it = query.find("id");
             if(it != query.end()) {
