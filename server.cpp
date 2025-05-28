@@ -335,11 +335,10 @@ class WebSocketServer {
             if(it != query.end()) {
                 room_id = it->second;
             }
-
-            s->orig_room_id = room_id;
             
             auto s = std::make_shared<net::session>();
             s->hdl = hdl;
+            s->orig_room_id = room_id;
             m_sessions[hdl] = s;
         }
 
