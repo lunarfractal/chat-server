@@ -162,7 +162,7 @@ class WebSocketServer {
         void cycle_s() {
             std::thread([this]() {
             while(true) {
-                auto then = std::chrono::steady_clock::now() + std::chrono::milliseconds(18);
+                auto then = std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / 30);
 
                 if(game_world.active_players.empty()) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
