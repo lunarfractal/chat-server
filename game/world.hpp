@@ -30,10 +30,20 @@ public:
 
     void delete_player(uint16_t id) {
         auto it = active_players.find(id);
-        if(it == active_players.end()) return;
+        if (it == active_players.end()) return;
 
-        active_players.erase(id);
+        auto playerPtr = it->second;
+   
+        if (playerPtr->session) {
+            if (playerPtr->session->player) {
+                playerPtr->session->player.reset();
+            }
+            playerPtr->session.reset();
+         }
+
+        active_players.erase(it);
     }
+
 };
 
 }
