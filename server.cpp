@@ -447,7 +447,8 @@ public:
                    buffer[offset++] = 0x00;
                    buffer[offset++] = 0x00;
 
-                   sendBuffer(player->session->hdl, buffer.data(), buffer.size());
+                   if(player->deletion_reason == 0x00)
+                       sendBuffer(player->session->hdl, buffer.data(), buffer.size());
                 }
 
                 for (uint16_t id: game_world.pending_deletions) {
