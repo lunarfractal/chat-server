@@ -41,8 +41,7 @@ class WebSocketServer {
             if(it == m_sessions.end()) return;
             auto s = it->second;
 
-            net::packetr p(buffer);
-            uint8_t op = p.u8();
+            uint8_t op = buffer[0];
 
             switch(op) {
                 case net::opcode_ping:
@@ -55,8 +54,8 @@ class WebSocketServer {
                 case net::opcode_hi:
                 {
                     if(buffer.length() >= 5) {
-                        s->screen_width = p.u16();
-                        s->screen_height = p.u16();
+                        std::memcpy(&s->screen_width, &buffer[1], 2);
+                        std::memcpy(&s->screen_height, &buffer[3], 2);
                     }
                     if(!(s->sent_hello)) s->sent_hello = true;
 
@@ -73,7 +72,8 @@ class WebSocketServer {
                     auto player = std::make_shared<game::Player>();
                     player->session = s;
 
-                    player->nick = p.u16string();
+                    int offset = 1;
+                    player->nick = getU16String(buffer, offset);
 
                     player->id = game_world.add_player(player);
 
@@ -110,8 +110,8 @@ class WebSocketServer {
                 case net::opcode_resize:
                 {
                     if(buffer.length() >= 5) {
-                        s->screen_width = p.u16();
-                        s->screen_height = p.u16();
+                        std::memcpy(&s->screen_width, &buffer[1], 2);
+                        std::memcoy(&s->screen_height, &buffer[3], 2);
                     }
 
                     break;
@@ -121,7 +121,9 @@ class WebSocketServer {
                 {
                     if(!s->did_enter_game()) return;
 
-                    uint16_t x = p.u16(), y = p.u16();
+                    uint16_t x, y;
+                    std::memcpy(x, &buffer[1], 2);
+                    std::memcpy(&y, &buffer[3], 2);
  /*                   std::cout << "update cursor: " << (int)x << " " << (int)y << std::endl;*/
                     s->player->updateCursor(x, y);
                     break;
@@ -130,7 +132,8 @@ class WebSocketServer {
                 case net::opcode_cd:
                 {
                     if(!s->did_enter_game()) return;
-                    std::u16string room_id = p.string();
+                    int offset = 1;
+                    std::string room_id = getString(buffer, offset);
 
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
                         game_world.rooms.insert(room_id);
@@ -146,7 +149,8 @@ class WebSocketServer {
 
                 case net::opcode_chat:
                 {
-                    std::u16string chat_message = p.u16string();
+                    int offset = 1;
+                    std::u16string chat_message = getU16String(buffer, offset);
                     dispatch_event(chat_message, s->player->id, s->player->roon_id);
                     break;
                 }
