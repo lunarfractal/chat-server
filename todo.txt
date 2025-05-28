@@ -6,7 +6,7 @@ chat
 better logging
 chat history
 ls
+fix memory leaks (did I?)
 
 todo:
 piano
-fix memory leaks
