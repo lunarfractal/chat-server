@@ -45,7 +45,7 @@ std::unordered_map<std::string, std::string> parse_query(const std::string& quer
     return query_map;
 }
 
-std::u16string getU16String(const std::vector<uint8_t>& data, int &offset) {
+std::u16string getU16String(const std::string& data, int &offset) {
     std::u16string result;
 
     if (offset >= data.size()) {
@@ -63,7 +63,7 @@ std::u16string getU16String(const std::vector<uint8_t>& data, int &offset) {
     return result;
 }
 
-std::string getString(const std::vector<uint8_t>& data, int &offset) {
+std::string getString(const std::string& data, int &offset) {
     std::string result;
 
     if (offset >= data.size()) {
