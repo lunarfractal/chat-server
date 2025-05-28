@@ -14,7 +14,7 @@ constexpr uint8_t opcode_resize = 0x05;
 constexpr uint8_t opcode_cursor = 0x06;
 constexpr uint8_t opcode_cd = 0x07;
 constexpr uint8_t opcode_ls = 0x08;
-constexpr uint8_t chat = 0x09;
+constexpr uint8_t opcode_chat = 0x09;
 
 constexpr uint8_t opcode_pong = 0x00;
 constexpr uint8_t opcode_entered_game = 0xA0;
