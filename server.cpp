@@ -9,6 +9,7 @@
 #include <cstring>
 
 #include "utils/utils.hpp"
+#include "utils/logger.hpp"
 #include "game/world.hpp"
 
 #include "net/session.hpp"
@@ -46,6 +47,7 @@ public:
                 case net::opcode_ping:
                 {
                     pong(hdl);
+                    logger::log("ping", logger::Level::DEBUG);
                     if(!s->sent_ping) s->sent_ping = true;
                     break;
                 }
@@ -57,7 +59,7 @@ public:
                         std::memcpy(&s->screen_height, &buffer[3], 2);
                     }
                     if(!(s->sent_hello)) s->sent_hello = true;
-
+                    logger::log("hi: " + std::to_string((int)s->screen_width) + " " + std::to_string((int)s->screen_height), logger::Level::DEBUG);
                     break;
                 }
 
@@ -66,7 +68,10 @@ public:
 
                 case net::opcode_enter_game:
                 {
-                    if(s->did_enter_game() || !(s->sent_ping) || !(s->sent_hello)) return;
+                    if(s->did_enter_game() || !(s->sent_ping) || !(s->sent_hello)) {
+                        logger::log("received enter game while already ingame");
+                        return;
+                    }
 
                     auto player = std::make_shared<game::Player>();
                     player->session = s;
@@ -79,6 +84,7 @@ public:
                     std::string room_id = s->orig_room_id;
 
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                        logger::log("Creating Room: " + room_id + " from: " std::to_string((int)player->id));
                         game_world.rooms.insert(room_id);
                     }
 
@@ -89,16 +95,21 @@ public:
                     s->player = player;
 
                     s->sent_nick_count++;
-/*
-                    std::cout << "Entered game: " << (int)s->player->id << std::endl
-                        << "Size of map: " << gameWorld.activePlayers.size() << std::endl; */
+
+                    logger::log(
+                        "Entered Game: " + std::to_string((int)player->id) + 
+                        " in room: " + room_id + " for the " +
+                        std::to_string((int)s->sent_nick_count) + "th time"
+                    );
                     break;
                 }
 
                 case net::opcode_leave_game:
                 {
-                    if(!(s->did_enter_game())) return;
-
+                    if(!(s->did_enter_game())) {
+                        logger::log("received opcode_leave_game while not ingame");
+                        return;
+                    }
                   /*  std::cout << "received opcode leave game" << std::endl;*/
 
                     s->player->deletion_reason = 0x03;
@@ -112,7 +123,7 @@ public:
                         std::memcpy(&s->screen_width, &buffer[1], 2);
                         std::memcpy(&s->screen_height, &buffer[3], 2);
                     }
-
+                    logger::log("resize: " + std::to_string((int)s->screen_width) + " " + std::to_string((int)s->screen_height), logger::Level::DEBUG);
                     break;
                 }
 
@@ -123,21 +134,27 @@ public:
                     uint16_t x, y;
                     std::memcpy(&x, &buffer[1], 2);
                     std::memcpy(&y, &buffer[3], 2);
- /*                   std::cout << "update cursor: " << (int)x << " " << (int)y << std::endl;*/
+                        
                     s->player->updateCursor(x, y);
                     break;
                 }
 
                 case net::opcode_cd:
                 {
-                    if(!s->did_enter_game()) return;
+                    if(!s->did_enter_game()) {
+                        logger::log("Received cd while not in game");
+                        return;
+                    }
+                        
                     int offset = 1;
                     std::string room_id = utils::getString(buffer, offset);
 
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                        logger::log("(cd) Creating room: " + room_id + " from " + std::to_string((int)s->player->id));
                         game_world.rooms.insert(room_id);
                     }
 
+                    logger::log("(cd) changing room: " + room_id + " from " + std::to_string((int)s->player->id));
                     s->player->room_id = room_id;
 
                     break;
