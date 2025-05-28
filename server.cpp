@@ -72,7 +72,7 @@ class WebSocketServer {
                     player->session = s;
 
                     int offset = 1;
-                    player->nick = getU16String(buffer, offset);
+                    player->nick = utils::getU16String(buffer, offset);
 
                     player->id = game_world.add_player(player);
 
@@ -132,7 +132,7 @@ class WebSocketServer {
                 {
                     if(!s->did_enter_game()) return;
                     int offset = 1;
-                    std::string room_id = getString(buffer, offset);
+                    std::string room_id = utils::getString(buffer, offset);
 
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
                         game_world.rooms.insert(room_id);
@@ -149,7 +149,7 @@ class WebSocketServer {
                 case net::opcode_chat:
                 {
                     int offset = 1;
-                    std::u16string chat_message = getU16String(buffer, offset);
+                    std::u16string chat_message = utils::getU16String(buffer, offset);
                     dispatch_event(chat_message, s->player->id, s->player->roon_id);
                     break;
                 }
