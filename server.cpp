@@ -336,7 +336,7 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
             std::u16string chat_message = utils::getU16String(buffer, offset);
             logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
             dispatch_message(chat_message, s->player->id, s->player->room_id);
-            game_world.id2messages[s->player->room_id].insert({
+            game_world.id2messages[s->player->room_id].push_back({
                 chat_message,
                 s->player->nick,
                 s->player->id,
@@ -371,11 +371,11 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
                 offset += 2;
                 std::memcpy(&buffer[offset], &msg.timestamp, 8);
                 offset += 8;
-                std::memcpy(&buffer[offset], &msg.owner_nick.data(), msg.owner_nick.length() * 2);
+                std::memcpy(&buffer[offset], msg.owner_nick.data(), msg.owner_nick.length() * 2);
                 offset += msg.owner_nick.length() * 2;
                 buffer[offset++] = 0x00;
                 buffer[offset++] = 0x00;
-                std::memcpy(&buffer[offset], &msg.content.data(), msg.content.length() * 2);
+                std::memcpy(&buffer[offset], msg.content.data(), msg.content.length() * 2);
                 offset += msg.content.length() * 2;
                 buffer[offset++] = 0x00;
                 buffer[offset++] = 0x00;

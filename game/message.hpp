@@ -11,7 +11,7 @@ struct Message {
     std::u16string owner_nick;
     uint16_t owner_id;
     double timestamp;
-}
+};
 
 }
 

@@ -10,7 +10,7 @@ class logger {
 public:
     enum class Level {
         INFO,
-        WARNING,
+        WARN,
         ERROR,
         DEBUG
     };
@@ -25,7 +25,7 @@ private:
     static std::string levelToString(Level level) {
         switch (level) {
             case Level::INFO:    return "INFO";
-            case Level::WARNING: return "WARNING";
+            case Level::WARN: return "WARN";
             case Level::ERROR:   return "ERROR";
             case Level::DEBUG:   return "DEBUG";
             default:             return "UNKNOWN";

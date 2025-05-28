@@ -1,6 +1,7 @@
 #ifndef WORLD_HPP
 #define WORLD_HPP
 
+#include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include "../utils/utils.hpp"
@@ -15,7 +16,7 @@ public:
     std::unordered_map<uint16_t, std::shared_ptr<Player>> active_players;
     std::unordered_set<uint16_t> pending_deletions;
     std::unordered_set<std::string> rooms;
-    std::unordered_map<std::string, std::unordered_set<Message>> id2messages;
+    std::unordered_map<std::string, std::vector<Message>> id2messages;
 
     void mark_for_deletion(uint16_t id) {
         pending_deletions.insert(id);
