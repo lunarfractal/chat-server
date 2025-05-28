@@ -319,13 +319,26 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
         }
 
         case net::opcode_ls:
+        {
             if (!s->did_enter_game()) {
                 logger::log("Received ls before entering game", logger::Level::WARN);
                 return;
             }
-            logger::log("Received ls opcode", logger::Level::DEBUG);
+            logger::log("listing rooms", logger::Level::DEBUG);
+            int bufferSize = 1;
+            for(std::string &id: game_world.rooms) {
+                bufferSize += id.length() + 1;
+            }
+            std::vector<uint8_t> buffer(bufferSize);
+            int offset = 1;
+            for(std::string &id: game_world.rooms) {
+                std::memcpy(&buffer[offset], id.data(), id.size());
+                buffer[offset++] = 0x00;
+            }
+            sendBuffer(hdl, buffer.data(), buffer.size());
             break;
-
+        }
+            
         case net::opcode_chat:
         {
             if (!s->did_enter_game()) {
