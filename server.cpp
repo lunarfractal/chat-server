@@ -252,19 +252,25 @@ public:
                           /*  std::cout << "its my id" << std::endl;*/
                             continue;
                         }
-                        if(!player->hasInView(pair.second)) continue;
-                        if(pair.second->deletion_reason > 0) {
+                        if(player->hasInView(pair.second)) {
+                            if(pair.second->deletion_reason > 0) {
+                                bufferSize += 2; // id
+                                bufferSize += 1; // flag
+                                bufferSize += 1; // killReason
+                                continue;
+                            }
+                            uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
+
                             bufferSize += 2; // id
                             bufferSize += 1; // flag
-                            bufferSize += 1; // killReason
-                            continue;
+                            bufferSize += 4; // 2+2 uint16's
+                            if(creation == 0x0) bufferSize += 2 * pair.second->nick.length() + 2 + 1;
                         }
-                        uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
-
-                        bufferSize += 2; // id
-                        bufferSize += 1; // flag
-                        bufferSize += 4; // 2+2 uint16's
-                        if(creation == 0x0) bufferSize += 2 * pair.second->nick.length() + 2 + 1;
+                        else {
+                            if(player->view.find(pair.second->id) != player->view.end()) {
+                                offset += 4;
+                            }
+                        }
                     }
 
                     bufferSize += 2;
