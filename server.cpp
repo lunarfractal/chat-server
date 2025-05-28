@@ -84,7 +84,7 @@ public:
                     std::string room_id = s->orig_room_id;
 
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
-                        logger::log("Creating Room: " + room_id + " from: " std::to_string((int)player->id));
+                        logger::log("Creating Room: " + room_id + " from: " + std::to_string((int)player->id));
                         game_world.rooms.insert(room_id);
                     }
 
