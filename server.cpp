@@ -11,7 +11,6 @@
 #include "game/world.hpp"
 #include "net/session.hpp"
 #include "net/opcodes.hpp"
-#include "net/packet.hpp"
 #include "utils/utils.hpp"
 
 using websocketpp::lib::bind;
@@ -193,26 +192,35 @@ class WebSocketServer {
 
                         bufferSize += 2;
 
-                        net::packetw p(bufferSize);
-                        p.u8(net::opcode_cycle_s);
+                        std::vector<uint8_t> buffer(bufferSize);
+                        buffer[0] = net::opcode_cycle_s;
+
+                        int offset = 1;
 
                         for(auto &pair: game_world.active_players) {
                             if(pair.second->id == id) {
                               /*  std::cout << "it's my id" << std::endl;*/
                                 continue;
                             }
-                            p.u16(pair.first)
-                                .u8(0x0)
-                                .u16(pair.second->x)
-                                .u16(pair.second->y)
-                                .u16string(pair.second->nick)
-                                .u8(0x02);
+                            std::memcpy(&buffer[offset], &pair.first, 2);
+                            offset += 2;
+                            buffer[offset++] = 0x0;
+                            std::memcpy(&buffer[offset], &pair.second->x, 2);
+                            offset += 2;
+                            std::memcpy(&buffer[offset], &pair.second->y, 2);
+                            offset += 2;
+                            std::memcpy(&buffer[offset], pair.second->nick.data(), 2 * pair.second->nick.length());
+                            offset += 2 * pair.second->nick.length();
+                            buffer[offset++] = 0x00;
+                            buffer[offset++] = 0x00;
+                            buffer[offset++] = 0x02;
                             player->view.insert(pair.first);
                         }
 
-                        p.u16(0x00);
+                        buffer[offset++] = 0x00;
+                        buffer[offset++] = 0x00;
 
-                        sendBuffer(player->session->hdl, p.data(), (size_t)bufferSize);
+                        sendBuffer(player->session->hdl, buffer.data(), buffer.size());
 
                         player->session->needsInitPackets = false;
                       /*  std::cout << "Sent init packets" << std::endl;*/
@@ -244,54 +252,66 @@ class WebSocketServer {
 
                     bufferSize += 2;
 
-                    net::packetw p(bufferSize);
+                    std::vector<uint8_t> buffer(bufferSize);
 
-                    p.u8(net::opcode_cycle_s);
+                    buffer[0] = net::opcode_cycle_s);
 
+                    int offset = 1;
+                    
                     for(auto &pair: game_world.active_players) {
                       /*  std::cout << "trying to encode normal packet" << std::endl;*/
                         if(pair.first == id) {
                             continue;
                         }
                         if(pair.second->deletion_reason == 0x02) {
-                            p.u16(pair.first)
-                                .u8(0x2)
-                                .u8(0x02);
+                            std::memcpy(&buffer[offset], &pair.first, 2);
+                            offset += 2;
+                            buffer[offset++] = 0x2;
+                            buffer[offset++] = 0x02;
                             continue;
                         } else if(pair.second->deletion_reason == 0x03) {
-                            p.u16(pair.first)
-                                .u8(0x2)
-                                .u8(0x03);
+                            std::memcpy(&buffer[offset], &pair.first, 2);
+                            offset += 2;
+                            buffer[offset++] = 0x2;
+                            buffer[offset++] = 0x03;
                             continue;
                         }
 
                         if(player->hasInView(pair.second)) {
                             uint8_t reason;
                             uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
-                            p.u16(pair.first)
-                                .u8(creation)
-                                .u16(pair.second->x)
-                                .u16(pair.second->y);
+                            std::memcpy(&buffer[offset], &pair.first, 2);
+                            offset += 2;
+                            buffer[offset++] = creation;
+                            std::memcpy(&buffer[offset], &pair.second->x, 2);
+                            offset += 2;
+                            std::memcpy(&buffer[offset], &pair.second->y, 2);
+                            offset += 2;
                             if(creation == 0x0) {
                                 if(pair.second->session->sent_nick_count == 1) reason = 0x00;
                                 else if(pair.second->session->sent_nick_count > 1) reason = 0x01;
                                 player->view.insert(pair.second->id);
-                                p.u16string(pair.second->nick)
-                                    .u8(reason);
+                                std::memcpy(&buffer[offset], pair.second->nick.data(), 2 * pair.second->nick.length());
+                                offset += 2 * pair.second->nick.length();
+                                buffer[offset++] = 0x00;
+                                buffer[offset++] = 0x00;
+                                buffer[offset++] = reason;
                             }
                         } else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
                                 player->view.erase(pair.second->id);
-                                p.u16(pair.first)
-                                    .u8(0x2)
-                                    .u16(0x02);
+                                std::memcpy(&buffer[offset], &pair.first, 2);
+                                offset += 2;
+                                buffer[offset++] = 0x2;
+                                buffer[offset++] = 0x1;
                             }
                         }
                    }
 
-                   p.u16(0x00);
+                   buffer[offset++] = 0x00;
+                   buffer[offset++] = 0x00;
 
-                   sendBuffer(player->session->hdl, p.data(), (size_t)bufferSize);
+                   sendBuffer(player->session->hdl, buffer.data(), buffer.size());
                 }
 
                 for(uint16_t id: game_world.pending_deletions) {
@@ -367,13 +387,18 @@ class WebSocketServer {
 
         void dispatch_message(const std::u16string &value, uint16_t id, const std::string &room_id) {
             const int size = 1 + 1 + 2 + 2 * value.length() + 2);
-            net::packetw p(size);
-            p.u8(net::opcode_events)
-                .u8(0x1)
-                .u16(id)
-                .u16string(value);
+            std::vector<uint8_t> buffer(size);
+            buffer[0] = net::opcode_events;
+            int offset = 1;
+            buffer[offset++] = 0x1;
+            std::memcpy(&buffer[offset], &id, 2);
+            offset += 2;
+            std::memcpy(&buffer[offset], value.data(), 2 * value.length());
+            offset += 2 * value.length();
+            buffer[offset++] = 0x00;
+            buffer[offset++] = 0x00;
                     
-            send_dispatch(p.data(), (size_t)size, room_id);
+            send_dispatch(buffer.data(), buffer.size(), room_id);
         }
 
         void pong(connection_hdl hdl) {
