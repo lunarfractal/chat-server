@@ -652,7 +652,7 @@ void on_close(connection_hdl hdl) {
         logger::log("Some person disconnected before entering the game", logger::Level::DEBUG);
     }
 
-    m_sessions.erase(hdl);
+    m_sessions.erase(it);
     logger::log("session deleted. remaining: " + std::to_string(m_sessions.size()), logger::Level::INFO);
 }
 
