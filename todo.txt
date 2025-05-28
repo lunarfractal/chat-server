@@ -9,3 +9,4 @@ todo:
 piano
 chat history
 client
+ls
