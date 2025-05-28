@@ -3,8 +3,9 @@ cursors
 rooms
 make sure new syntax with manual memcpy calls actually works
 chat
+better logging
 
 todo:
 piano
 chat history
-better logging
+client
