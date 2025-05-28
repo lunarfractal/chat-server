@@ -35,7 +35,7 @@ public:
             m_server.clear_access_channels(websocketpp::log::alevel::all);
         }
 
-
+/*
         void processMessage(std::string &buffer, connection_hdl hdl) {
             auto it = m_sessions.find(hdl);
             if(it == m_sessions.end()) return;
@@ -110,7 +110,6 @@ public:
                         logger::log("received opcode_leave_game while not ingame");
                         return;
                     }
-                  /*  std::cout << "received opcode leave game" << std::endl;*/
 
                     s->player->deletion_reason = 0x03;
                     game_world.mark_for_deletion(s->player->id);
@@ -175,6 +174,169 @@ public:
                 break;
             }
         }
+*/
+
+        // better logging
+void processMessage(std::string &buffer, connection_hdl hdl) {
+    auto it = m_sessions.find(hdl);
+    if (it == m_sessions.end()) {
+        logger::log("No session found for given connection", logger::Level::WARN);
+        return;
+    }
+    auto s = it->second;
+
+    if (buffer.empty()) {
+        logger::log("Received empty buffer", logger::Level::WARN);
+        return;
+    }
+
+    uint8_t op = buffer[0];
+
+    switch(op) {
+        case net::opcode_ping:
+        {
+            pong(hdl);
+            logger::log("Received ping", logger::Level::DEBUG);
+            if (!s->sent_ping) {
+                s->sent_ping = true;
+                logger::log("First ping from session", logger::Level::DEBUG);
+            }
+            break;
+        }
+
+        case net::opcode_hi:
+        {
+            if (buffer.length() >= 5) {
+                std::memcpy(&s->screen_width, &buffer[1], 2);
+                std::memcpy(&s->screen_height, &buffer[3], 2);
+                logger::log("Received hi: screen " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
+            } else {
+                logger::log("invalid hi packet (too short)", logger::Level::WARN);
+            }
+
+            if (!s->sent_hello) {
+                s->sent_hello = true;
+                logger::log("first hi from session", logger::Level::DEBUG);
+            }
+            break;
+        }
+
+        case net::opcode_hi_bot:
+            logger::log("Received hi_bot opcode", logger::Level::DEBUG);
+            break;
+
+        case net::opcode_enter_game:
+        {
+            if (s->did_enter_game() || !s->sent_ping || !s->sent_hello) {
+                logger::log("Received enter_game but session is not ready or already in game", logger::Level::WARN);
+                return;
+            }
+
+            auto player = std::make_shared<game::Player>();
+            player->session = s;
+
+            int offset = 1;
+            player->nick = utils::getU16String(buffer, offset);
+            player->id = game_world.add_player(player);
+            std::string room_id = s->orig_room_id;
+
+            if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                logger::log("Creating room: " + room_id + " for player " + std::to_string((int)player->id), logger::Level::INFO);
+                game_world.rooms.insert(room_id);
+            }
+
+            player->room_id = room_id;
+            sendId(hdl, player->id);
+            s->player = player;
+            s->sent_nick_count++;
+
+            logger::log(
+                "Player " + std::to_string((int)player->id) + 
+                " entered game in room: " + room_id +
+                " (" + std::to_string((int)s->sent_nick_count) + " times)", logger::Level::INFO
+            );
+            break;
+        }
+
+        case net::opcode_leave_game:
+        {
+            if (!s->did_enter_game()) {
+                logger::log("Received leave_game while not in game", logger::Level::WARN);
+                return;
+            }
+
+            logger::log("Player " + std::to_string((int)s->player->id) + " is leaving the game", logger::Level::INFO);
+            s->player->deletion_reason = 0x03;
+            game_world.mark_for_deletion(s->player->id);
+            break;
+        }
+
+        case net::opcode_resize:
+        {
+            if (buffer.length() >= 5) {
+                std::memcpy(&s->screen_width, &buffer[1], 2);
+                std::memcpy(&s->screen_height, &buffer[3], 2);
+                logger::log("Screen resized to: " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
+            } else {
+                logger::log("invalid resize packet (too short)", logger::Level::WARN);
+            }
+            break;
+        }
+
+        case net::opcode_cursor:
+        {
+            if (!s->did_enter_game()) {
+                logger::log("Received cursor update before entering game", logger::Level::WARN);
+                return;
+            }
+
+            uint16_t x, y;
+            std::memcpy(&x, &buffer[1], 2);
+            std::memcpy(&y, &buffer[3], 2);
+
+            s->player->updateCursor(x, y);
+            break;
+        }
+
+        case net::opcode_cd:
+        {
+            if (!s->did_enter_game()) {
+                logger::log("Received cd before entering game", logger::Level::WARN);
+                return;
+            }
+
+            int offset = 1;
+            std::string room_id = utils::getString(buffer, offset);
+
+            if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                logger::log("Creating new room (cd): " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::INFO);
+                game_world.rooms.insert(room_id);
+            }
+
+            logger::log("Changing room to: " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::DEBUG);
+            s->player->room_id = room_id;
+            break;
+        }
+
+        case net::opcode_ls:
+            logger::log("Received ls opcode", logger::Level::DEBUG);
+            break;
+
+        case net::opcode_chat:
+        {
+            int offset = 1;
+            std::u16string chat_message = utils::getU16String(buffer, offset);
+            logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
+            dispatch_message(chat_message, s->player->id, s->player->room_id);
+            break;
+        }
+
+        default:
+            logger::log("unknown opcode received: " + std::to_string(op), logger::Level::WARN);
+            break;
+    }
+}
+
 
         void cycle_s() {
             std::thread([this]() {
@@ -348,6 +510,7 @@ public:
             }).detach();
         }
 
+/*
         void on_open(connection_hdl hdl) {
             server::connection_ptr con = m_server.get_con_from_hdl(hdl);
             std::string path = con->get_resource();
@@ -377,6 +540,54 @@ public:
             }
             m_sessions.erase(hdl);
         }
+*/
+
+void on_open(connection_hdl hdl) {
+    logger::log("Connection opened", logger::Level::INFO);
+
+    server::connection_ptr con = m_server.get_con_from_hdl(hdl);
+    std::string path = con->get_resource();
+    logger::log("path: " + path, logger::Level::DEBUG);
+
+    std::string room_id = "lobby";
+    std::unordered_map<std::string, std::string> query = utils::parse_query(path);
+
+    auto it = query.find("id");
+    if (it != query.end()) {
+        room_id = it->second;
+        logger::log("id: " + room_id, logger::Level::DEBUG);
+    } else {
+        logger::log("default connection, connecting to lobby", logger::Level::DEBUG);
+    }
+
+    auto s = std::make_shared<net::session>();
+    s->hdl = hdl;
+    s->orig_room_id = room_id;
+    m_sessions[hdl] = s;
+
+    logger::log("Added session, number of sessions: " + std::to_string(m_sessions.size()), logger::Level::INFO);
+}
+
+void on_close(connection_hdl hdl) {
+    auto it = m_sessions.find(hdl);
+    if (it == m_sessions.end()) {
+        logger::log("on_close called but no session for hdl", logger::Level::WARN);
+        return;
+    }
+
+    auto s = it->second;
+    if (s->did_enter_game()) {
+        logger::log("Player " + std::to_string((int)s->player->id) + " disconnected 0x02", logger::Level::INFO);
+        s->player->deletion_reason = 0x02;
+        game_world.mark_for_deletion(s->player->id);
+    } else {
+        logger::log("Some person disconnected before entering the game", logger::Level::DEBUG);
+    }
+
+    m_sessions.erase(hdl);
+    logger::log("session deleted. remaining: " + std::to_string(m_sessions.size()), logger::Level::INFO);
+}
+
 
         void on_message(connection_hdl hdl, message_ptr msg) {
             if(msg->get_opcode() == websocketpp::frame::opcode::binary) {
