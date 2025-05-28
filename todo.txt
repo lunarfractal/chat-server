@@ -1,8 +1,8 @@
 done:
 cursors
 rooms
-
-todo:
 make sure new syntax with manual memcpy calls actually works
 chat
+
+todo:
 piano
