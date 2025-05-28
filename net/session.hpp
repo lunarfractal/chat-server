@@ -14,6 +14,8 @@ namespace net {
 struct session {
     connection_hdl hdl;
 
+    std::string orig_room_id;
+
     bool sent_ping = false;
     bool sent_hello = false;
     uint16_t sent_nick_count = 0;
