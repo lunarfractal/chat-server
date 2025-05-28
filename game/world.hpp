@@ -13,6 +13,7 @@ public:
     std::unordered_map<uint16_t, std::shared_ptr<Player>> active_players;
     std::unordered_set<uint16_t> pending_deletions;
     std::unordered_set<std::string> rooms;
+    std::unordered_map<std::string, std::unordered_set<std::string>> id2messages;
 
     void mark_for_deletion(uint16_t id) {
         pending_deletions.insert(id);
