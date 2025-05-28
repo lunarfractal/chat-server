@@ -35,6 +35,7 @@ class WebSocketServer {
             m_server.clear_access_channels(websocketpp::log::alevel::all);
         }
 
+
         void processMessage(std::string &buffer, connection_hdl hdl) {
             auto it = m_sessions.find(hdl);
             if(it == m_sessions.end()) return;
@@ -139,6 +140,19 @@ class WebSocketServer {
 
                     break;
                 }
+
+                case net::opcode_ls:
+                break;
+
+                case net::opcode_chat:
+                {
+                    std::u16string chat_message = p.u16string();
+                    dispatch_event(chat_message, s->player->id, s->player->roon_id);
+                    break;
+                }
+
+                default:
+                break;
             }
         }
 
@@ -346,6 +360,19 @@ class WebSocketServer {
 
         std::unordered_map<connection_hdl, std::shared_ptr<net::session>, connection_hdl_hash, connection_hdl_equal> m_sessions;
 
+
+        void dispatch_message(const std::u16string &value, uint16_t id, const std::string &room_id) {
+            const int size = 1 + 1 + 2 + room_id.length() + 1 + 2 * value.length() + 2);
+            net::packetw p(size);
+            p.u8(net::opcode_events)
+                .u8(0x1)
+                .u16(id)
+                .string(room_id)
+                .u16string(value);
+                    
+            send_dispatch(p.data(), (size_t)size, room_id);
+        }
+
         void pong(connection_hdl hdl) {
             uint8_t buffer[] = {net::opcode_pong};
             try {
@@ -365,6 +392,24 @@ class WebSocketServer {
             } catch (websocketpp::exception const & e) {
                 std::cout << "Send failed because: "
                     << "(" << e.what() << ")" << std::endl;
+            }
+        }
+
+        void send_dispatch(uint8_t* buffer, size_t size, std::string &room_id) {
+            for (auto &pair: m_sessions) {
+                try {
+                    if (
+                        m_server.get_con_from_hdl(pair.first)->get_state() == websocketpp::session::state::open
+                        && pair.second->sent_ping
+                        && pair.second->sent_hello
+                        && pair.second->player->room_id == room_id
+                    ) {
+                        m_server.send(pair.first, buffer, size, websocketpp::frame::opcode::binary);
+                    }
+                } catch (websocketpp::exception const & e) {
+                    std::cout << "Send failed because: "
+                        << "(" << e.what() << ")" << std::endl;
+                }
             }
         }
 
@@ -403,4 +448,3 @@ int main() {
     wsServer.cycle_s();
     wsServer.run(8081);
 }
-
