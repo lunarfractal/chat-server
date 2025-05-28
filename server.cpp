@@ -268,7 +268,7 @@ public:
                         }
                         else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
-                                offset += 4;
+                                bufferSize += 4;
                             }
                         }
                     }
