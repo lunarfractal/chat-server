@@ -8,10 +8,12 @@
 #include <vector>
 #include <cstring>
 
-#include "game/world.hpp"
 #include "net/session.hpp"
 #include "net/opcodes.hpp"
+
 #include "utils/utils.hpp"
+#include "game/world.hpp"
+
 
 using websocketpp::lib::bind;
 using websocketpp::lib::placeholders::_1;
@@ -20,7 +22,6 @@ using websocketpp::lib::placeholders::_2;
 typedef websocketpp::server<websocketpp::config::asio> server;
 typedef websocketpp::connection_hdl connection_hdl;
 typedef server::message_ptr message_ptr;
-
 
 class WebSocketServer {
     public:
