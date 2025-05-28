@@ -21,7 +21,8 @@ public:
     packetw& u64(uint64_t v);
     packetw& f32(float v);
     packetw& f64(double v);
-    packetw& string(const std::u16string &v);
+    packetw& string(const std::string &v);
+    packetw& u16string(const std::u16string &v);
 
     uint8_t* data();
 private:
@@ -43,7 +44,8 @@ public:
     uint64_t u64();
     float f32();
     double f64();
-    std::u16string string();
+    std::string string();
+    std::u16string u16string();
 private:
     int offset;
     std::string buffer;
@@ -111,7 +113,14 @@ packetw& packetw::f64(double v) {
     return *this;
 }
 
-packetw& packetw::string(const std::u16string &v) {
+packetw& packetw::string(const std::string &v) {
+    std::memcpy(&buffer[offset], v.data(), v.length());
+    offset += v.length();
+    buffer[offset++] = 0x00;
+    return *this;
+}
+
+packetw& packetw::u16string(const std::u16string &v) {
     std::memcpy(&buffer[offset], v.data(), 2 * v.length());
     offset += 2 * v.length();
     buffer[offset++] = 0x00;
@@ -195,7 +204,20 @@ double packetr::f64() {
     return v;
 }
 
-std::u16string packetr::string() {
+std::string packetr::string() {
+    std::string dest;
+    const size_t len = buffer.size();
+
+    while (offset < len) {
+        char ch = buffer[offset++];
+        if (ch == '\0') break;
+        dest.push_back(ch);
+    }
+
+    return dest;
+}
+
+std::u16string packetr::u16string() {
     std::u16string dest;
     const size_t len = buffer.size();
 
