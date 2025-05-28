@@ -46,6 +46,4 @@ std::unordered_map<std::string, std::string> parse_query(const std::string& quer
 
 }
 
-}
-
 #endif
