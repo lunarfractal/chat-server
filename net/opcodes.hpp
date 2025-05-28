@@ -19,6 +19,7 @@ constexpr uint8_t opcode_chat = 0x09;
 constexpr uint8_t opcode_pong = 0x00;
 constexpr uint8_t opcode_entered_game = 0xA0;
 constexpr uint8_t opcode_cycle_s = 0xA4;
+constexpr uint8_t opcode_events = 0xA1;
 
 }
 
