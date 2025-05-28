@@ -70,15 +70,15 @@ std::string getString(const std::string& data, int &offset) {
         throw std::out_of_range("offset is out of bounds");
     }
 
-    for (; offset < data.size(); offset++) {
-        char ch = data[offset];
+    while (offset < data.size()) {
+        char ch = data[offset++];
         if (ch == '\0') {
-            break;
+            return result;
         }
         result.push_back(ch);
     }
 
-    return result;
+    throw std::runtime_error("no null terminator");
 }
 
 }
