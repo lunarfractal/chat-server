@@ -110,7 +110,7 @@ class WebSocketServer {
                 {
                     if(buffer.length() >= 5) {
                         std::memcpy(&s->screen_width, &buffer[1], 2);
-                        std::memcoy(&s->screen_height, &buffer[3], 2);
+                        std::memcpy(&s->screen_height, &buffer[3], 2);
                     }
 
                     break;
