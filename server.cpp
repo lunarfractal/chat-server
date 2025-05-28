@@ -121,11 +121,11 @@ class WebSocketServer {
                 case net::opcode_cd:
                 {
                     if(!s->did_enter_game()) return;
-                    uint16_t roomId = p.u16();
+                    std::u16string room_id = p.string();
 
-                    if(game_world.rooms.find(roomId) == game_world.rooms.end()) return;
+                    if(game_world.rooms.find(room_id) == game_world.rooms.end()) return;
 
-                    s->player->roomId = roomId;
+                    s->player->room_id = room_id;
 
                     break;
                 }
@@ -276,6 +276,18 @@ class WebSocketServer {
         }
 
         void on_open(connection_hdl hdl) {
+            server::connection_ptr con = m_server.get_con_from_hdl(hdl);
+            std::string path = con->get_resource();
+
+            std::string room_id = "lobby";
+
+            std::unordered_map<std::string, std::string> query = parse_query(path);
+
+            auto it = query.find("id");
+            if(it != query.end()) {
+                room_id = it->second;
+            }
+            
             auto s = std::make_shared<net::session>();
             s->hdl = hdl;
             m_sessions[hdl] = s;
