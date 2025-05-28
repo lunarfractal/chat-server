@@ -25,272 +25,272 @@ typedef server::message_ptr message_ptr;
 
 class WebSocketServer {
 public:
-        WebSocketServer() {
-            m_server.init_asio();
+    WebSocketServer() {
+        m_server.init_asio();
 
-            m_server.set_open_handler(bind(&WebSocketServer::on_open,this,::_1));
-            m_server.set_close_handler(bind(&WebSocketServer::on_close,this,::_1));
-            m_server.set_message_handler(bind(&WebSocketServer::on_message,this,::_1,::_2));
+        m_server.set_open_handler(bind(&WebSocketServer::on_open,this,::_1));
+        m_server.set_close_handler(bind(&WebSocketServer::on_close,this,::_1));
+        m_server.set_message_handler(bind(&WebSocketServer::on_message,this,::_1,::_2));
 
-            m_server.clear_access_channels(websocketpp::log::alevel::all);
-        }
-
-        // better logging
-void processMessage(std::string &buffer, connection_hdl hdl) {
-    auto it = m_sessions.find(hdl);
-    if (it == m_sessions.end()) {
-        logger::log("No session found for given connection", logger::Level::WARN);
-        return;
-    }
-    auto s = it->second;
-
-    if (buffer.empty()) {
-        logger::log("received empty buffer", logger::Level::WARN);
-        return;
+        m_server.clear_access_channels(websocketpp::log::alevel::all);
     }
 
-    uint8_t op = buffer[0];
+    void processMessage(std::string &buffer, connection_hdl hdl) {
+        auto it = m_sessions.find(hdl);
+        if (it == m_sessions.end()) {
+            logger::log("No session found for given connection", logger::Level::WARN);
+            return;
+        }
+        auto s = it->second;
 
-    switch(op) {
-        case net::opcode_ping:
-        {
-            pong(hdl);
-            logger::log("Received ping", logger::Level::DEBUG);
-            if (!s->sent_ping) {
-                s->sent_ping = true;
-                logger::log("first ping from session", logger::Level::DEBUG);
-            }
-            break;
+        if (buffer.empty()) {
+            logger::log("received empty buffer", logger::Level::WARN);
+            return;
         }
 
-        case net::opcode_hi:
-        {
-            if (buffer.length() >= 5) {
-                std::memcpy(&s->screen_width, &buffer[1], 2);
-                std::memcpy(&s->screen_height, &buffer[3], 2);
-                // fix vulnerability
-                if(s->screen_width == 0x00) s->screen_width = 1;
-                if(s->screen_height == 0x00) s->screen_height = 1;
-                logger::log("Received hi: screen " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
-            } else {
-                logger::log("invalid hi packet (too short)", logger::Level::WARN);
+        uint8_t op = buffer[0];
+
+        switch(op) {
+            case net::opcode_ping:
+            {
+                pong(hdl);
+                logger::log("Received ping", logger::Level::DEBUG);
+                if (!s->sent_ping) {
+                    s->sent_ping = true;
+                    logger::log("first ping from session", logger::Level::DEBUG);
+                }
+                break;
             }
 
-            if (!s->sent_hello) {
-                s->sent_hello = true;
-                logger::log("first hi from session", logger::Level::DEBUG);
-            }
-            break;
-        }
+            case net::opcode_hi:
+            {
+                if (buffer.length() >= 5) {
+                    std::memcpy(&s->screen_width, &buffer[1], 2);
+                    std::memcpy(&s->screen_height, &buffer[3], 2);
+                    // fix vulnerability
+                    if(s->screen_width == 0x00) s->screen_width = 1;
+                    if(s->screen_height == 0x00) s->screen_height = 1;
+                    logger::log("Received hi: screen " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
+                } else {
+                    logger::log("invalid hi packet (too short)", logger::Level::WARN);
+                }
 
-        case net::opcode_hi_bot:
-            logger::log("Received hi_bot opcode", logger::Level::DEBUG);
-            break;
-
-        case net::opcode_enter_game:
-        {
-            if(buffer.size() >= 37) {
-                logger::log("nick is too long!", logger::Level::WARN);
-                return;
-            }
-            if (s->did_enter_game() || !s->sent_ping || !s->sent_hello) {
-                logger::log("Received enter_game but session is not ready or already in game", logger::Level::WARN);
-                return;
+                if (!s->sent_hello) {
+                    s->sent_hello = true;
+                    logger::log("first hi from session", logger::Level::DEBUG);
+                }
+                break;
             }
 
-            auto player = std::make_shared<game::Player>();
-            player->session = s;
+            case net::opcode_hi_bot:
+                logger::log("Received hi_bot opcode", logger::Level::DEBUG);
+                break;
 
-            int offset = 1;
-            player->nick = utils::getU16String(buffer, offset);
-            player->id = game_world.add_player(player);
-            std::string room_id = s->orig_room_id;
+            case net::opcode_enter_game:
+            {
+                if(buffer.size() >= 37) {
+                    logger::log("nick is too long!", logger::Level::WARN);
+                    return;
+                }
 
-            if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
-                logger::log("Creating room: " + room_id + " for player " + std::to_string((int)player->id), logger::Level::INFO);
-                game_world.rooms.insert(room_id);
+                if (s->did_enter_game() || !s->sent_ping || !s->sent_hello) {
+                    logger::log("Received enter_game but session is not ready or already in game", logger::Level::WARN);
+                    return;
+                }
+
+                auto player = std::make_shared<game::Player>();
+                player->session = s;
+
+                int offset = 1;
+                player->nick = utils::getU16String(buffer, offset);
+                player->id = game_world.add_player(player);
+                std::string room_id = s->orig_room_id;
+
+                if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                    logger::log("Creating room: " + room_id + " for player " + std::to_string((int)player->id), logger::Level::INFO);
+                    game_world.rooms.insert(room_id);
+                }
+
+                player->room_id = room_id;
+                sendId(hdl, player->id);
+                s->player = player;
+                s->sent_nick_count++;
+
+                logger::log(
+                    "Player " + std::to_string((int)player->id) + 
+                    " entered game in room: " + room_id +
+                    " (" + std::to_string((int)s->sent_nick_count) + " times)", logger::Level::INFO
+                );
+                break;
             }
 
-            player->room_id = room_id;
-            sendId(hdl, player->id);
-            s->player = player;
-            s->sent_nick_count++;
+            case net::opcode_leave_game:
+            {
+                if (!s->did_enter_game()) {
+                    logger::log("Received leave_game while not in game", logger::Level::WARN);
+                    return;
+                }
 
-            logger::log(
-                "Player " + std::to_string((int)player->id) + 
-                " entered game in room: " + room_id +
-                " (" + std::to_string((int)s->sent_nick_count) + " times)", logger::Level::INFO
-            );
-            break;
-        }
-
-        case net::opcode_leave_game:
-        {
-            if (!s->did_enter_game()) {
-                logger::log("Received leave_game while not in game", logger::Level::WARN);
-                return;
+                logger::log("Player " + std::to_string((int)s->player->id) + " is leaving the game", logger::Level::INFO);
+                s->player->deletion_reason = 0x03;
+                game_world.mark_for_deletion(s->player->id);
+                break;
             }
 
-            logger::log("Player " + std::to_string((int)s->player->id) + " is leaving the game", logger::Level::INFO);
-            s->player->deletion_reason = 0x03;
-            game_world.mark_for_deletion(s->player->id);
-            break;
-        }
-
-        case net::opcode_resize:
-        {
-            if (buffer.length() >= 5) {
-                std::memcpy(&s->screen_width, &buffer[1], 2);
-                std::memcpy(&s->screen_height, &buffer[3], 2);
-                // fix vulnerability
-                if(s->screen_width == 0x00) s->screen_width = 1;
-                if(s->screen_height == 0x00) s->screen_height = 1;
-                logger::log("Screen resized to: " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
-            } else {
-                logger::log("invalid resize packet (too short)", logger::Level::WARN);
-            }
-            break;
-        }
-
-        case net::opcode_cursor:
-        {
-            if (!s->did_enter_game()) {
-                logger::log("Received cursor update before entering game", logger::Level::WARN);
-                return;
+            case net::opcode_resize:
+            {
+                if (buffer.length() >= 5) {
+                    std::memcpy(&s->screen_width, &buffer[1], 2);
+                    std::memcpy(&s->screen_height, &buffer[3], 2);
+                    // fix vulnerability
+                    if(s->screen_width == 0x00) s->screen_width = 1;
+                    if(s->screen_height == 0x00) s->screen_height = 1;
+                    logger::log("Screen resized to: " + std::to_string((int)s->screen_width) + "x" + std::to_string((int)s->screen_height), logger::Level::DEBUG);
+                } else {
+                    logger::log("invalid resize packet (too short)", logger::Level::WARN);
+                }
+                break;
             }
 
-            uint16_t x, y;
-            std::memcpy(&x, &buffer[1], 2);
-            std::memcpy(&y, &buffer[3], 2);
+            case net::opcode_cursor:
+            {
+                if (!s->did_enter_game()) {
+                    logger::log("Received cursor update before entering game", logger::Level::WARN);
+                    return;
+                }
 
-            s->player->updateCursor(x, y);
-            break;
-        }
+                uint16_t x, y;
+                std::memcpy(&x, &buffer[1], 2);
+                std::memcpy(&y, &buffer[3], 2);
 
-        case net::opcode_cd:
-        {
-            if (!s->did_enter_game()) {
-                logger::log("Received cd before entering game", logger::Level::WARN);
-                return;
+                s->player->updateCursor(x, y);
+                break;
             }
 
-            int offset = 1;
-            std::string room_id = utils::getString(buffer, offset);
+            case net::opcode_cd:
+            {
+                if (!s->did_enter_game()) {
+                    logger::log("Received cd before entering game", logger::Level::WARN);
+                    return;
+                }
 
-            if(room_id == "") {
-                logger::log("empty room id!", logger::Level::WARN);
-                return;
+                int offset = 1;
+                std::string room_id = utils::getString(buffer, offset);
+
+                if(room_id == "") {
+                    logger::log("empty room id!", logger::Level::WARN);
+                    return;
+                }
+
+                if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                    logger::log("Creating new room (cd): " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::INFO);
+                    game_world.rooms.insert(room_id);
+                }
+
+                logger::log("Changing room to: " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::DEBUG);
+                s->player->room_id = room_id;
+                break;
             }
 
-            if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
-                logger::log("Creating new room (cd): " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::INFO);
-                game_world.rooms.insert(room_id);
+            case net::opcode_ls:
+            {
+                if (!s->did_enter_game()) {
+                    logger::log("Received ls before entering game", logger::Level::WARN);
+                    return;
+                }
+                logger::log("listing rooms", logger::Level::DEBUG);
+                int bufferSize = 1;
+                for(const std::string &id: game_world.rooms) {
+                    bufferSize += id.length() + 1;
+                }
+                std::vector<uint8_t> buffer(bufferSize);
+                buffer[0] = net::opcode_config;
+                int offset = 1;
+                for(const std::string &id: game_world.rooms) {
+                    std::memcpy(&buffer[offset], id.data(), id.size());
+                    buffer[offset++] = 0x00;
+                }
+                sendBuffer(hdl, buffer.data(), buffer.size());
+                break;
             }
 
-            logger::log("Changing room to: " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::DEBUG);
-            s->player->room_id = room_id;
-            break;
-        }
-
-        case net::opcode_ls:
-        {
-            if (!s->did_enter_game()) {
-                logger::log("Received ls before entering game", logger::Level::WARN);
-                return;
-            }
-            logger::log("listing rooms", logger::Level::DEBUG);
-            int bufferSize = 1;
-            for(const std::string &id: game_world.rooms) {
-                bufferSize += id.length() + 1;
-            }
-            std::vector<uint8_t> buffer(bufferSize);
-            buffer[0] = net::opcode_config;
-            int offset = 1;
-            for(const std::string &id: game_world.rooms) {
-                std::memcpy(&buffer[offset], id.data(), id.size());
-                buffer[offset++] = 0x00;
-            }
-            sendBuffer(hdl, buffer.data(), buffer.size());
-            break;
-        }
-
-        case net::opcode_chat:
-        {
-            if(buffer.size() > 1 + 2 * 200 + 3) {
-                logger::log("message too long!", logger::Level::WARN);
-                return;
-            }
+            case net::opcode_chat:
+            {
+                if(buffer.size() > 1 + 2 * 200 + 3) {
+                    logger::log("message too long!", logger::Level::WARN);
+                    return;
+                }
                 
-            if (!s->did_enter_game()) {
-                logger::log("Received chat before entering game", logger::Level::WARN);
-                return;
+                if (!s->did_enter_game()) {
+                    logger::log("Received chat before entering game", logger::Level::WARN);
+                    return;
+                }
+                int offset = 1;
+                std::u16string chat_message = utils::getU16String(buffer, offset);
+                if(chat_message == u"") {
+                    logger::log("empty message!", logger::Level::WARN);
+                    return;
+                }
+                logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
+                dispatch_message(chat_message, s->player->id, s->player->room_id);
+                game_world.id2messages[s->player->room_id].push_back({
+                    chat_message,
+                    s->player->nick,
+                    s->player->id,
+                    std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()
+                });
+                break;
             }
-            int offset = 1;
-            std::u16string chat_message = utils::getU16String(buffer, offset);
-            if(chat_message == u"") {
-                logger::log("empty message!");
-                return;
-            }
-            logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
-            dispatch_message(chat_message, s->player->id, s->player->room_id);
-            game_world.id2messages[s->player->room_id].push_back({
-                chat_message,
-                s->player->nick,
-                s->player->id,
-                std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()
-            });
-            break;
-        }
 
-        case net::opcode_ls_messages:
-        {
-            if (!s->did_enter_game()) {
-                logger::log("Received ls_messages before entering game", logger::Level::WARN);
-                return;
-            }
+            case net::opcode_ls_messages:
+            {
+                if (!s->did_enter_game()) {
+                    logger::log("Received ls_messages before entering game", logger::Level::WARN);
+                    return;
+                }
                 
-            int bufferSize = 1;
+                int bufferSize = 1;
 
-            for(auto &msg: game_world.id2messages[s->player->room_id]) {
-                bufferSize += 2;
-                bufferSize += 8;
-                bufferSize += 2 * msg.owner_nick.length() + 2;
-                bufferSize += 2 * msg.content.length() + 2;
+                for(auto &msg: game_world.id2messages[s->player->room_id]) {
+                    bufferSize += 2;
+                    bufferSize += 8;
+                    bufferSize += 2 * msg.owner_nick.length() + 2;
+                    bufferSize += 2 * msg.content.length() + 2;
+                }
+
+                std::vector<uint8_t> buffer(bufferSize);
+
+                buffer[0] = net::opcode_history;
+
+                int offset = 1;
+                for(auto &msg: game_world.id2messages[s->player->room_id]) {
+                    std::memcpy(&buffer[offset], &msg.owner_id, 2);
+                    offset += 2;
+                    std::memcpy(&buffer[offset], &msg.timestamp, 8);
+                    offset += 8;
+                    std::memcpy(&buffer[offset], msg.owner_nick.data(), msg.owner_nick.length() * 2);
+                    offset += msg.owner_nick.length() * 2;
+                    buffer[offset++] = 0x00;
+                    buffer[offset++] = 0x00;
+                    std::memcpy(&buffer[offset], msg.content.data(), msg.content.length() * 2);
+                    offset += msg.content.length() * 2;
+                    buffer[offset++] = 0x00;
+                    buffer[offset++] = 0x00;
+                }
+
+                sendBuffer(hdl, buffer.data(), buffer.size());
+                break;
             }
 
-            std::vector<uint8_t> buffer(bufferSize);
-
-            buffer[0] = net::opcode_history;
-
-            int offset = 1;
-            for(auto &msg: game_world.id2messages[s->player->room_id]) {
-                std::memcpy(&buffer[offset], &msg.owner_id, 2);
-                offset += 2;
-                std::memcpy(&buffer[offset], &msg.timestamp, 8);
-                offset += 8;
-                std::memcpy(&buffer[offset], msg.owner_nick.data(), msg.owner_nick.length() * 2);
-                offset += msg.owner_nick.length() * 2;
-                buffer[offset++] = 0x00;
-                buffer[offset++] = 0x00;
-                std::memcpy(&buffer[offset], msg.content.data(), msg.content.length() * 2);
-                offset += msg.content.length() * 2;
-                buffer[offset++] = 0x00;
-                buffer[offset++] = 0x00;
-            }
-
-            sendBuffer(hdl, buffer.data(), buffer.size());
-            break;
+            default:
+                logger::log("unknown opcode received: " + std::to_string(op), logger::Level::WARN);
+                break;
         }
-
-        default:
-            logger::log("unknown opcode received: " + std::to_string(op), logger::Level::WARN);
-            break;
     }
-}
 
 
-        void cycle_s() {
-            std::thread([this]() {
+    void cycle_s() {
+        std::thread([this]() {
             while(true) {
                 auto then = std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / 30);
 
@@ -458,172 +458,157 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
 
                 std::this_thread::sleep_until(then);
             }
-            }).detach();
-        }
-
-void on_open(connection_hdl hdl) {
-    logger::log("Connection opened", logger::Level::INFO);
-
-    server::connection_ptr con = m_server.get_con_from_hdl(hdl);
-    std::string path = con->get_resource();
-    logger::log("path: " + path, logger::Level::DEBUG);
-
-    std::string room_id = "lobby";
-    std::unordered_map<std::string, std::string> query = utils::parse_query(path);
-
-    auto it = query.find("id");
-    if (it != query.end()) {
-        room_id = it->second;
-        logger::log("id: " + room_id, logger::Level::DEBUG);
-    } else {
-        logger::log("default connection, connecting to lobby", logger::Level::DEBUG);
+        }).detach();
     }
 
-    auto s = std::make_shared<net::session>();
-    s->hdl = hdl;
-    s->orig_room_id = room_id == "" ? "lobby" : room_id;
-    m_sessions[hdl] = s;
+    void on_open(connection_hdl hdl) {
+        logger::log("Connection opened", logger::Level::INFO);
 
-    logger::log("Added session, number of sessions: " + std::to_string(m_sessions.size()), logger::Level::INFO);
-}
+        server::connection_ptr con = m_server.get_con_from_hdl(hdl);
+        std::string path = con->get_resource();
+        logger::log("path: " + path, logger::Level::DEBUG);
 
-void on_close(connection_hdl hdl) {
-    auto it = m_sessions.find(hdl);
-    if (it == m_sessions.end()) {
-        logger::log("on_close called but no session for hdl", logger::Level::WARN);
-        return;
+        std::string room_id = "lobby";
+        std::unordered_map<std::string, std::string> query = utils::parse_query(path);
+
+        auto it = query.find("id");
+        if (it != query.end()) {
+            room_id = it->second;
+            logger::log("id: " + room_id, logger::Level::DEBUG);
+        } else {
+            logger::log("default connection, connecting to lobby", logger::Level::DEBUG);
+        }
+
+        auto s = std::make_shared<net::session>();
+        s->hdl = hdl;
+        s->orig_room_id = room_id == "" ? "lobby" : room_id;
+        m_sessions[hdl] = s;
+
+        logger::log("Added session, number of sessions: " + std::to_string(m_sessions.size()), logger::Level::INFO);
     }
 
-    auto s = it->second;
-    if (s->did_enter_game()) {
-        logger::log("Player " + std::to_string((int)s->player->id) + " disconnected 0x02", logger::Level::INFO);
-        s->player->deletion_reason = 0x02;
-        game_world.mark_for_deletion(s->player->id);
-    } else {
-        logger::log("Some person disconnected before entering the game", logger::Level::DEBUG);
+    void on_close(connection_hdl hdl) {
+        auto it = m_sessions.find(hdl);
+        if (it == m_sessions.end()) {
+            logger::log("on_close called but no session for hdl", logger::Level::WARN);
+            return;
+        }
+
+        auto s = it->second;
+        if (s->did_enter_game()) {
+            logger::log("Player " + std::to_string((int)s->player->id) + " disconnected 0x02", logger::Level::INFO);
+            s->player->deletion_reason = 0x02;
+            game_world.mark_for_deletion(s->player->id);
+        } else {
+            logger::log("Some person disconnected before entering the game", logger::Level::DEBUG);
+        }
+
+        m_sessions.erase(it);
+        logger::log("session deleted. remaining: " + std::to_string(m_sessions.size()), logger::Level::INFO);
     }
 
-    m_sessions.erase(it);
-    logger::log("session deleted. remaining: " + std::to_string(m_sessions.size()), logger::Level::INFO);
-}
 
-
-        void on_message(connection_hdl hdl, message_ptr msg) {
-            if(msg->get_opcode() == websocketpp::frame::opcode::binary) {
-                std::string payload = msg->get_payload();
-                processMessage(payload, hdl);
-            }
+    void on_message(connection_hdl hdl, message_ptr msg) {
+        if(msg->get_opcode() == websocketpp::frame::opcode::binary) {
+            std::string payload = msg->get_payload();
+            processMessage(payload, hdl);
         }
+    }
 
-        void run(uint16_t port) {
-            m_server.listen(port);
-            m_server.start_accept();
-            m_server.run();
+    void run(uint16_t port) {
+        m_server.listen(port);
+        m_server.start_accept();
+        m_server.run();
+    }
+
+private:
+    game::GameWorld game_world;
+
+    server m_server;
+
+    typedef struct {
+        std::size_t operator()(const websocketpp::connection_hdl& hdl) const {
+            return std::hash<std::uintptr_t>()(reinterpret_cast<std::uintptr_t>(hdl.lock().get()));
         }
-    private:
-        game::GameWorld game_world;
+    } connection_hdl_hash;
 
-        server m_server;
-
-        typedef struct {
-            std::size_t operator()(const websocketpp::connection_hdl& hdl) const {
-                return std::hash<std::uintptr_t>()(reinterpret_cast<std::uintptr_t>(hdl.lock().get()));
-            }
-        } connection_hdl_hash;
-        typedef struct {
-            bool operator()(const websocketpp::connection_hdl& lhs, const websocketpp::connection_hdl& rhs) const {
-                return !lhs.owner_before(rhs) && !rhs.owner_before(lhs);
-            }
-        } connection_hdl_equal;
-
-        std::unordered_map<connection_hdl, std::shared_ptr<net::session>, connection_hdl_hash, connection_hdl_equal> m_sessions;
-
-
-        void dispatch_message(const std::u16string &value, uint16_t id, std::string &room_id) {
-            const int size = 1 + 1 + 2 + 2 * value.length() + 2;
-            std::vector<uint8_t> buffer(size);
-            buffer[0] = net::opcode_events;
-            int offset = 1;
-            buffer[offset++] = 0x1;
-            std::memcpy(&buffer[offset], &id, 2);
-            offset += 2;
-            std::memcpy(&buffer[offset], value.data(), 2 * value.length());
-            offset += 2 * value.length();
-            buffer[offset++] = 0x00;
-            buffer[offset++] = 0x00;
-
-            send_dispatch(buffer.data(), buffer.size(), room_id);
+    typedef struct {
+        bool operator()(const websocketpp::connection_hdl& lhs, const websocketpp::connection_hdl& rhs) const {
+            return !lhs.owner_before(rhs) && !rhs.owner_before(lhs);
         }
+    } connection_hdl_equal;
 
-        void pong(connection_hdl hdl) {
-            uint8_t buffer[] = {net::opcode_pong};
-            try {
-                m_server.send(hdl, buffer, sizeof(buffer), websocketpp::frame::opcode::binary);
-            } catch (websocketpp::exception const & e) {
-                std::cout << "Pong failed because: "
-                    << "(" << e.what() << ")" << std::endl;
-            }
+
+    std::unordered_map<connection_hdl, std::shared_ptr<net::session>, connection_hdl_hash, connection_hdl_equal> m_sessions;
+
+
+    void dispatch_message(const std::u16string &value, uint16_t id, std::string &room_id) {
+        const int size = 1 + 1 + 2 + 2 * value.length() + 2;
+        std::vector<uint8_t> buffer(size);
+        buffer[0] = net::opcode_events;
+        int offset = 1;
+        buffer[offset++] = 0x1;
+        std::memcpy(&buffer[offset], &id, 2);
+        offset += 2;
+        std::memcpy(&buffer[offset], value.data(), 2 * value.length());
+        offset += 2 * value.length();
+        buffer[offset++] = 0x00;
+        buffer[offset++] = 0x00;
+
+        send_dispatch(buffer.data(), buffer.size(), room_id);
+    }
+
+    void pong(connection_hdl hdl) {
+        uint8_t buffer[] = {net::opcode_pong};
+        try {
+            m_server.send(hdl, buffer, sizeof(buffer), websocketpp::frame::opcode::binary);
+        } catch (websocketpp::exception const & e) {
+            std::cout << "Pong failed because: "
+                << "(" << e.what() << ")" << std::endl;
         }
+    }
 
-        void sendId(connection_hdl hdl, uint16_t id) {
-            uint8_t buffer[3];
-            buffer[0] = net::opcode_entered_game;
-            std::memcpy(&buffer[1], &id, sizeof(uint16_t));
-            try {
-                m_server.send(hdl, buffer, sizeof(buffer), websocketpp::frame::opcode::binary);
-            } catch (websocketpp::exception const & e) {
-                std::cout << "Send failed because: "
-                    << "(" << e.what() << ")" << std::endl;
-            }
+    void sendId(connection_hdl hdl, uint16_t id) {
+        uint8_t buffer[3];
+        buffer[0] = net::opcode_entered_game;
+        std::memcpy(&buffer[1], &id, sizeof(uint16_t));
+        try {
+            m_server.send(hdl, buffer, sizeof(buffer), websocketpp::frame::opcode::binary);
+        } catch (websocketpp::exception const & e) {
+            std::cout << "Send failed because: "
+                << "(" << e.what() << ")" << std::endl;
         }
+    }
 
-        void send_dispatch(uint8_t* buffer, size_t size, std::string &room_id) {
-            for (auto &pair: m_sessions) {
-                try {
-                    if (
-                        m_server.get_con_from_hdl(pair.first)->get_state() == websocketpp::session::state::open
-                        && pair.second->sent_ping
-                        && pair.second->sent_hello
-                        && pair.second->player->room_id == room_id
-                    ) {
-                        m_server.send(pair.first, buffer, size, websocketpp::frame::opcode::binary);
-                    }
-                } catch (websocketpp::exception const & e) {
-                    std::cout << "Send failed because: "
-                        << "(" << e.what() << ")" << std::endl;
-                }
-            }
-        }
-
-        void sendAll(uint8_t* buffer, size_t size) {
-            for (auto &pair: m_sessions) {
-                try {
-                    if (
-                        m_server.get_con_from_hdl(pair.first)->get_state() == websocketpp::session::state::open
-                        && pair.second->sent_ping
-                        && pair.second->sent_hello
-                    ) {
-                        m_server.send(pair.first, buffer, size, websocketpp::frame::opcode::binary);
-                    }
-                } catch (websocketpp::exception const & e) {
-                    std::cout << "Send failed because: "
-                        << "(" << e.what() << ")" << std::endl;
-                }
-            }
-        }
-
-        void sendBuffer(connection_hdl hdl, uint8_t *buffer, size_t size) {
+    void send_dispatch(uint8_t* buffer, size_t size, std::string &room_id) {
+        for (auto &pair: m_sessions) {
             try {
                 if (
-                        m_server.get_con_from_hdl(hdl)->get_state() == websocketpp::session::state::open
-                )
-                    m_server.send(hdl, buffer, size, websocketpp::frame::opcode::binary);
+                    m_server.get_con_from_hdl(pair.first)->get_state() == websocketpp::session::state::open
+                    && pair.second->sent_ping
+                    && pair.second->sent_hello
+                    && pair.second->player->room_id == room_id
+                ) {
+                    m_server.send(pair.first, buffer, size, websocketpp::frame::opcode::binary);
+                }
             } catch (websocketpp::exception const & e) {
                 std::cout << "Send failed because: "
                     << "(" << e.what() << ")" << std::endl;
             }
         }
+    }
+
+    void sendBuffer(connection_hdl hdl, uint8_t *buffer, size_t size) {
+        try {
+            if (m_server.get_con_from_hdl(hdl)->get_state() == websocketpp::session::state::open)
+                m_server.send(hdl, buffer, size, websocketpp::frame::opcode::binary);
+        } catch (websocketpp::exception const & e) {
+            std::cout << "Send failed because: "
+                << "(" << e.what() << ")" << std::endl;
+        }
+    }
 };
+
 
 int main() {
     WebSocketServer wsServer;
