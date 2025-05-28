@@ -8,12 +8,11 @@
 #include <vector>
 #include <cstring>
 
-#include "net/session.hpp"
-#include "net/opcodes.hpp"
-
 #include "utils/utils.hpp"
 #include "game/world.hpp"
 
+#include "net/session.hpp"
+#include "net/opcodes.hpp"
 
 using websocketpp::lib::bind;
 using websocketpp::lib::placeholders::_1;
@@ -24,7 +23,7 @@ typedef websocketpp::connection_hdl connection_hdl;
 typedef server::message_ptr message_ptr;
 
 class WebSocketServer {
-    public:
+public:
         WebSocketServer() {
             m_server.init_asio();
 
@@ -82,7 +81,7 @@ class WebSocketServer {
                     if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
                         game_world.rooms.insert(room_id);
                     }
-                    
+
                     player->room_id = room_id;
 
                     sendId(hdl, player->id);
@@ -122,7 +121,7 @@ class WebSocketServer {
                     if(!s->did_enter_game()) return;
 
                     uint16_t x, y;
-                    std::memcpy(x, &buffer[1], 2);
+                    std::memcpy(&x, &buffer[1], 2);
                     std::memcpy(&y, &buffer[3], 2);
  /*                   std::cout << "update cursor: " << (int)x << " " << (int)y << std::endl;*/
                     s->player->updateCursor(x, y);
@@ -151,7 +150,7 @@ class WebSocketServer {
                 {
                     int offset = 1;
                     std::u16string chat_message = utils::getU16String(buffer, offset);
-                    dispatch_event(chat_message, s->player->id, s->player->roon_id);
+                    dispatch_message(chat_message, s->player->id, s->player->room_id);
                     break;
                 }
 
@@ -387,8 +386,8 @@ class WebSocketServer {
         std::unordered_map<connection_hdl, std::shared_ptr<net::session>, connection_hdl_hash, connection_hdl_equal> m_sessions;
 
 
-        void dispatch_message(const std::u16string &value, uint16_t id, const std::string &room_id) {
-            const int size = 1 + 1 + 2 + 2 * value.length() + 2);
+        void dispatch_message(const std::u16string &value, uint16_t id, std::string &room_id) {
+            const int size = 1 + 1 + 2 + 2 * value.length() + 2;
             std::vector<uint8_t> buffer(size);
             buffer[0] = net::opcode_events;
             int offset = 1;
@@ -399,7 +398,7 @@ class WebSocketServer {
             offset += 2 * value.length();
             buffer[offset++] = 0x00;
             buffer[offset++] = 0x00;
-                    
+
             send_dispatch(buffer.data(), buffer.size(), room_id);
         }
 
