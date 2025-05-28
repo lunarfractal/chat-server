@@ -72,9 +72,17 @@ class WebSocketServer {
                     auto player = std::make_shared<game::Player>();
                     player->session = s;
 
-                    player->nick = p.string();
+                    player->nick = p.u16string();
 
                     player->id = game_world.add_player(player);
+
+                    std::string room_id = s->orig_room_id;
+
+                    if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                        game_world.rooms.insert(room_id);
+                    }
+                    
+                    player->room_id = room_id;
 
                     sendId(hdl, player->id);
 
@@ -123,7 +131,9 @@ class WebSocketServer {
                     if(!s->did_enter_game()) return;
                     std::u16string room_id = p.string();
 
-                    if(game_world.rooms.find(room_id) == game_world.rooms.end()) return;
+                    if(game_world.rooms.find(room_id) == game_world.rooms.end()) {
+                        game_world.rooms.insert(room_id);
+                    }
 
                     s->player->room_id = room_id;
 
@@ -177,7 +187,7 @@ class WebSocketServer {
                                 .u8(0x0)
                                 .u16(pair.second->x)
                                 .u16(pair.second->y)
-                                .string(pair.second->nick)
+                                .u16string(pair.second->nick)
                                 .u8(0x02);
                             player->view.insert(pair.first);
                         }
@@ -248,7 +258,7 @@ class WebSocketServer {
                                 if(pair.second->session->sent_nick_count == 1) reason = 0x00;
                                 else if(pair.second->session->sent_nick_count > 1) reason = 0x01;
                                 player->view.insert(pair.second->id);
-                                p.string(pair.second->nick)
+                                p.u16string(pair.second->nick)
                                     .u8(reason);
                             }
                         } else {
@@ -287,6 +297,8 @@ class WebSocketServer {
             if(it != query.end()) {
                 room_id = it->second;
             }
+
+            s->orig_room_id = room_id;
             
             auto s = std::make_shared<net::session>();
             s->hdl = hdl;
