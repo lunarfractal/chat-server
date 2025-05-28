@@ -330,6 +330,7 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
                 bufferSize += id.length() + 1;
             }
             std::vector<uint8_t> buffer(bufferSize);
+            buffer[0] = net::opcode_config;
             int offset = 1;
             for(std::string &id: game_world.rooms) {
                 std::memcpy(&buffer[offset], id.data(), id.size());
