@@ -8,5 +8,5 @@ better logging
 todo:
 piano
 chat history
-client
 ls
+safety
