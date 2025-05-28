@@ -89,6 +89,10 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
 
         case net::opcode_enter_game:
         {
+            if(buffer.size() >= 37) {
+                logger::log("nick is too long!", logger::Level::WARN);
+                return;
+            }
             if (s->did_enter_game() || !s->sent_ping || !s->sent_hello) {
                 logger::log("Received enter_game but session is not ready or already in game", logger::Level::WARN);
                 return;
@@ -173,6 +177,11 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
             int offset = 1;
             std::string room_id = utils::getString(buffer, offset);
 
+            if(room_id == "") {
+                logger::log("empty room id!", logger::Level::WARN);
+                return;
+            }
+
             if (game_world.rooms.find(room_id) == game_world.rooms.end()) {
                 logger::log("Creating new room (cd): " + room_id + " for player " + std::to_string((int)s->player->id), logger::Level::INFO);
                 game_world.rooms.insert(room_id);
@@ -207,6 +216,11 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
 
         case net::opcode_chat:
         {
+            if(buffer.size() > 1 + 2 * 200 + 3) {
+                logger::log("message too long!", logger::Level::WARN);
+                return;
+            }
+                
             if (!s->did_enter_game()) {
                 logger::log("Received chat before entering game", logger::Level::WARN);
                 return;
@@ -447,38 +461,6 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
             }).detach();
         }
 
-/*
-        void on_open(connection_hdl hdl) {
-            server::connection_ptr con = m_server.get_con_from_hdl(hdl);
-            std::string path = con->get_resource();
-
-            std::string room_id = "lobby";
-
-            std::unordered_map<std::string, std::string> query = utils::parse_query(path);
-
-            auto it = query.find("id");
-            if(it != query.end()) {
-                room_id = it->second;
-            }
-            
-            auto s = std::make_shared<net::session>();
-            s->hdl = hdl;
-            s->orig_room_id = room_id;
-            m_sessions[hdl] = s;
-        }
-
-        void on_close(connection_hdl hdl) {
-            auto it = m_sessions.find(hdl);
-            if(it == m_sessions.end()) return;
-
-            if(it->second->did_enter_game()) {
-                it->second->player->deletion_reason = 0x02;
-                game_world.mark_for_deletion(it->second->player->id);
-            }
-            m_sessions.erase(hdl);
-        }
-*/
-
 void on_open(connection_hdl hdl) {
     logger::log("Connection opened", logger::Level::INFO);
 
@@ -499,7 +481,7 @@ void on_open(connection_hdl hdl) {
 
     auto s = std::make_shared<net::session>();
     s->hdl = hdl;
-    s->orig_room_id = room_id;
+    s->orig_room_id = room_id == "" ? "lobby" : room_id;
     m_sessions[hdl] = s;
 
     logger::log("Added session, number of sessions: " + std::to_string(m_sessions.size()), logger::Level::INFO);
