@@ -319,11 +319,19 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
         }
 
         case net::opcode_ls:
+            if (!s->did_enter_game()) {
+                logger::log("Received ls before entering game", logger::Level::WARN);
+                return;
+            }
             logger::log("Received ls opcode", logger::Level::DEBUG);
             break;
 
         case net::opcode_chat:
         {
+            if (!s->did_enter_game()) {
+                logger::log("Received chat before entering game", logger::Level::WARN);
+                return;
+            }
             int offset = 1;
             std::u16string chat_message = utils::getU16String(buffer, offset);
             logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
@@ -334,6 +342,46 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
                 s->player->id,
                 std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()
             });
+            break;
+        }
+
+        case net::opcode_ls_messages:
+        {
+            if (!s->did_enter_game()) {
+                logger::log("Received ls_messages before entering game", logger::Level::WARN);
+                return;
+            }
+                
+            int bufferSize = 1;
+
+            for(auto &msg: game_world.id2messages[s->player->room_id]) {
+                bufferSize += 2;
+                bufferSize += 8;
+                bufferSize += 2 * msg.owner_nick.length() + 2;
+                bufferSize += 2 * msg.content.length() + 2;
+            }
+
+            std::vector<uint8_t> buffer(bufferSize);
+
+            buffer[0] = net::opcode_history;
+
+            int offset = 1;
+            for(auto &msg: game_world.id2messages[s->player->room_id]) {
+                std::memcpy(&buffer[offset], &msg.owner_id, 2);
+                offset += 2;
+                std::memcpy(&buffer[offset], &msg.timestamp, 8);
+                offset += 8;
+                std::memcpy(&buffer[offset], &msg.owner_nick.data(), msg.owner_nick.length() * 2);
+                offset += msg.owner_nick.length() * 2;
+                buffer[offset++] = 0x00;
+                buffer[offset++] = 0x00;
+                std::memcpy(&buffer[offset], &msg.content.data(), msg.content.length() * 2);
+                offset += msg.content.length() * 2;
+                buffer[offset++] = 0x00;
+                buffer[offset++] = 0x00;
+            }
+
+            sendBuffer(hdl, buffer.data(), buffer.size());
             break;
         }
 
