@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 #include <string>
 
 namespace utils {
@@ -42,6 +43,42 @@ std::unordered_map<std::string, std::string> parse_query(const std::string& quer
     }
 
     return query_map;
+}
+
+std::u16string getU16String(const std::vector<uint8_t>& data, int &offset) {
+    std::u16string result;
+
+    if (offset >= data.size()) {
+        throw std::out_of_range("offset is out of bounds");
+    }
+
+    for (; offset + 1 < data.size(); offset += 2) {
+        char16_t ch = static_cast<char16_t>(data[offset] | (data[offset + 1] << 8));
+        if (ch == u'\0') {
+            break;
+        }
+        result.push_back(ch);
+    }
+
+    return result;
+}
+
+std::string getString(const std::vector<uint8_t>& data, int &offset) {
+    std::string result;
+
+    if (offset >= data.size()) {
+        throw std::out_of_range("offset is out of bounds");
+    }
+
+    for (; offset + 1 < data.size(); offset += 1) {
+        char ch = data[offset];
+        if (ch == '\0') {
+            break;
+        }
+        result.push_back(ch);
+    }
+
+    return result;
 }
 
 }
