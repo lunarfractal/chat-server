@@ -328,6 +328,12 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
             std::u16string chat_message = utils::getU16String(buffer, offset);
             logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
             dispatch_message(chat_message, s->player->id, s->player->room_id);
+            game_world.id2messages[s->player->room_id].insert({
+                chat_message,
+                s->player->nick,
+                s->player->id,
+                std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()
+            });
             break;
         }
 
