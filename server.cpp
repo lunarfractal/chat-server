@@ -254,7 +254,7 @@ class WebSocketServer {
 
                     std::vector<uint8_t> buffer(bufferSize);
 
-                    buffer[0] = net::opcode_cycle_s);
+                    buffer[0] = net::opcode_cycle_s;
 
                     int offset = 1;
                     
@@ -314,10 +314,12 @@ class WebSocketServer {
                    sendBuffer(player->session->hdl, buffer.data(), buffer.size());
                 }
 
-                for(uint16_t id: game_world.pending_deletions) {
+                for (uint16_t id: game_world.pending_deletions) {
                     game_world.delete_player(id);
-                    game_world.pending_deletions.erase(id);
                 }
+
+                game_world.pending_deletions.clear();
+
                 std::this_thread::sleep_until(then);
             }
             }).detach();
