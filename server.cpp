@@ -362,12 +362,11 @@ class WebSocketServer {
 
 
         void dispatch_message(const std::u16string &value, uint16_t id, const std::string &room_id) {
-            const int size = 1 + 1 + 2 + room_id.length() + 1 + 2 * value.length() + 2);
+            const int size = 1 + 1 + 2 + 2 * value.length() + 2);
             net::packetw p(size);
             p.u8(net::opcode_events)
                 .u8(0x1)
                 .u16(id)
-                .string(room_id)
                 .u16string(value);
                     
             send_dispatch(p.data(), (size_t)size, room_id);
