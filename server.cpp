@@ -326,20 +326,20 @@ void processMessage(std::string &buffer, connection_hdl hdl) {
             }
             logger::log("listing rooms", logger::Level::DEBUG);
             int bufferSize = 1;
-            for(std::string &id: game_world.rooms) {
+            for(const std::string &id: game_world.rooms) {
                 bufferSize += id.length() + 1;
             }
             std::vector<uint8_t> buffer(bufferSize);
             buffer[0] = net::opcode_config;
             int offset = 1;
-            for(std::string &id: game_world.rooms) {
+            for(const std::string &id: game_world.rooms) {
                 std::memcpy(&buffer[offset], id.data(), id.size());
                 buffer[offset++] = 0x00;
             }
             sendBuffer(hdl, buffer.data(), buffer.size());
             break;
         }
-            
+
         case net::opcode_chat:
         {
             if (!s->did_enter_game()) {
