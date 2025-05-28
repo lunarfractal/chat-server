@@ -4,9 +4,9 @@ rooms
 make sure new syntax with manual memcpy calls actually works
 chat
 better logging
+chat history
+ls
 
 todo:
 piano
-chat history
-ls
-safety
+fix memory leaks
