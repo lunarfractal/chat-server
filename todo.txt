@@ -6,3 +6,5 @@ chat
 
 todo:
 piano
+chat history
+better logging
