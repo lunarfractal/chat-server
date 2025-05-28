@@ -22,6 +22,7 @@ constexpr uint8_t opcode_entered_game = 0xA0;
 constexpr uint8_t opcode_cycle_s = 0xA4;
 constexpr uint8_t opcode_events = 0xA1;
 constexpr uint8_t opcode_history = 0xB1;
+constexpr uint8_t opcode_config = 0xB2;
 
 }
 
