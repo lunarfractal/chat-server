@@ -44,7 +44,7 @@ public:
         active_players.erase(it);
     }
 
-    void addMessage(std::string room_id, Message newMsg) {
+    void addMessage(std::string& room_id, Message newMsg) {
         std::deque<Message> &messages = id2messages[room_id];
         
         if (messages.size() >= 100) {
