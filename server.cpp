@@ -387,7 +387,7 @@ public:
                         }
                         else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
-                                bufferSize += 4;
+                                bufferSize += 3;
                             }
                         }
                     }
@@ -444,7 +444,6 @@ public:
                                 std::memcpy(&buffer[offset], &pair.first, 2);
                                 offset += 2;
                                 buffer[offset++] = 0x2;
-                                buffer[offset++] = 0x1;
                             }
                         }
                    }
