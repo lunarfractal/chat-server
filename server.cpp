@@ -324,7 +324,6 @@ public:
                             bufferSize += 4; // 2+2 xy
                             bufferSize += 2; // hue
                             bufferSize += 2 * pair.second->nick.length() + 2;
-                            bufferSize += 1; // reason
                         }
 
                         bufferSize += 2;
@@ -352,7 +351,6 @@ public:
                             offset += 2 * pair.second->nick.length();
                             buffer[offset++] = 0x00;
                             buffer[offset++] = 0x00;
-                            buffer[offset++] = 0x02;
                             player->view.insert(pair.first);
                         }
 
@@ -386,7 +384,7 @@ public:
                             bufferSize += 2; // id
                             bufferSize += 1; // flag
                             bufferSize += 4; // 2+2 uint16's
-                            if(creation == 0x0) bufferSize += 2 + 2 * pair.second->nick.length() + 2 + 1;
+                            if(creation == 0x0) bufferSize += 2 + 2 * pair.second->nick.length() + 2;
                         }
                         else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
@@ -435,8 +433,6 @@ public:
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
                             offset += 2;
                             if(creation == 0x0) {
-                                if(pair.second->session->sent_nick_count == 1) reason = 0x00;
-                                else if(pair.second->session->sent_nick_count > 1) reason = 0x01;
                                 player->view.insert(pair.second->id);
                                 std::memcpy(&buffer[offset], &pair.second->hue, 2);
                                 offset += 2;
@@ -444,7 +440,6 @@ public:
                                 offset += 2 * pair.second->nick.length();
                                 buffer[offset++] = 0x00;
                                 buffer[offset++] = 0x00;
-                                buffer[offset++] = reason;
                             }
                         } else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
