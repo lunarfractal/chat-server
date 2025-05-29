@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <cstdlib>
+#include <ctime>
 
 namespace utils {
 uint16_t getUniqueId() {
@@ -13,7 +15,9 @@ uint16_t getUniqueId() {
 }
 
 uint16_t getHue() {
-    return 1;
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    uint16_t value = static_cast<uint16_t>(std::rand() % 361);
+    return value;
 }
 
 std::unordered_map<std::string, std::string> parse_query(const std::string& query_string) {
