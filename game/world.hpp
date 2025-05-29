@@ -33,7 +33,7 @@ public:
         if (it == active_players.end()) return;
 
         auto playerPtr = it->second;
-   
+
         if (playerPtr->session) {
             if (playerPtr->session->player) {
                 playerPtr->session->player.reset();
@@ -44,9 +44,9 @@ public:
         active_players.erase(it);
     }
 
-    void addMessage(std::string& room_id, Message newMsg) {
+    void add_message(std::string& room_id, Message newMsg) {
         std::deque<Message> &messages = id2messages[room_id];
-        
+
         if (messages.size() >= 100) {
             messages.pop_front();
         }

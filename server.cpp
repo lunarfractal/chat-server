@@ -88,7 +88,7 @@ public:
 
             case net::opcode_enter_game:
             {
-                if(buffer.size() >= 37) {
+                if(buffer.size() >= 39) {
                     logger::log("nick is too long!", logger::Level::WARN);
                     return;
                 }
@@ -100,6 +100,9 @@ public:
 
                 auto player = std::make_shared<game::Player>();
                 player->session = s;
+                player->needs_init = true;
+
+                player->hue = utils::getHue();
 
                 int offset = 1;
                 player->nick = utils::getU16String(buffer, offset);
@@ -213,6 +216,7 @@ public:
                 int offset = 1;
                 for(const std::string &id: game_world.rooms) {
                     std::memcpy(&buffer[offset], id.data(), id.size());
+                    offset += id.size();
                     buffer[offset++] = 0x00;
                 }
                 sendBuffer(hdl, buffer.data(), buffer.size());
@@ -225,7 +229,7 @@ public:
                     logger::log("message too long!", logger::Level::WARN);
                     return;
                 }
-                
+
                 if (!s->did_enter_game()) {
                     logger::log("Received chat before entering game", logger::Level::WARN);
                     return;
@@ -253,7 +257,7 @@ public:
                     logger::log("Received ls_messages before entering game", logger::Level::WARN);
                     return;
                 }
-                
+
                 int bufferSize = 1;
 
                 for(auto &msg: game_world.id2messages[s->player->room_id]) {
@@ -308,14 +312,11 @@ public:
 
                 // update to every player
                 for(auto &[id, player]: game_world.active_players) {
-                    // so, is this specific player entering the game for the first time?
-                    if(player->session->sent_nick_count == 1 && player->session->needsInitPackets && player->deletion_reason == 0) {
-                      /*  std::cout << "first time entering game" << std::endl;*/
+                    if(player->needs_init && player->deletion_reason == 0) {
                         int bufferSize = 1;
 
                         for(auto &pair: game_world.active_players) {
                             if(pair.second->id == id) {
-                              /*  std::cout << "id = my id" << std::endl;*/
                                 continue;
                             }
                             bufferSize += 2; // id
@@ -360,7 +361,7 @@ public:
 
                         sendBuffer(player->session->hdl, buffer.data(), buffer.size());
 
-                        player->session->needsInitPackets = false;
+                        player->needs_init = false;
                       /*  std::cout << "Sent init packets" << std::endl;*/
                         continue;
                     }

@@ -16,6 +16,10 @@ struct Player {
     std::u16string nick;
     std::shared_ptr<net::session> session;
 
+    bool needs_init = true;
+
+    uint16_t hue;
+
     uint8_t deletion_reason = 0;
 
     std::unordered_set<uint16_t> view;
