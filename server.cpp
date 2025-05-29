@@ -385,7 +385,7 @@ public:
                             bufferSize += 2; // id
                             bufferSize += 1; // flag
                             bufferSize += 4; // 2+2 uint16's
-                            if(creation == 0x0) bufferSize += 2 * pair.second->nick.length() + 2 + 1;
+                            if(creation == 0x0) bufferSize += 2 + 2 * pair.second->nick.length() + 2 + 1;
                         }
                         else {
                             if(player->view.find(pair.second->id) != player->view.end()) {
