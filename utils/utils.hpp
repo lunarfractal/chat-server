@@ -12,6 +12,10 @@ uint16_t getUniqueId() {
     return current++;
 }
 
+uint16_t getHue() {
+    return 1;
+}
+
 std::unordered_map<std::string, std::string> parse_query(const std::string& query_string) {
     std::unordered_map<std::string, std::string> query_map;
 
