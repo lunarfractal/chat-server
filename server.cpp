@@ -413,12 +413,14 @@ public:
                             offset += 2;
                             buffer[offset++] = 0x2;
                             buffer[offset++] = 0x02;
+                            player->view.erase(pair.first);
                             continue;
                         } else if(pair.second->deletion_reason == 0x03) {
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
                             buffer[offset++] = 0x2;
                             buffer[offset++] = 0x03;
+                            player->view.erase(pair.first);
                             continue;
                         }
 
