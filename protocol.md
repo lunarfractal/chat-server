@@ -56,7 +56,7 @@ the next 4 bytes are the cursor's x and y coordinates scaled to uint16<br>
 next is null terminated u16 string which is the cursor's nick<br>
 the next byte is the reason the cursor was created on your screen<br>
 <br>
-**Create reasos**:<br>
+**Create reasons**:<br>
 0x00: it entered the game<br>
 0x01: it entered your room<br>
 0x02: it already existed before you joined<br>
