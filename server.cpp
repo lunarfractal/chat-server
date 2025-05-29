@@ -159,6 +159,11 @@ public:
                     return;
                 }
 
+                if(buffer.size() < 5) {
+                    logger::log("cursor packer is too short!", logger::Level::WARN);
+                    return;
+                }
+
                 uint16_t x, y;
                 std::memcpy(&x, &buffer[1], 2);
                 std::memcpy(&y, &buffer[3], 2);
