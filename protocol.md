@@ -38,7 +38,7 @@ u16string: null terminated u16 string
 ## Server -> Client
 **0x00** (Pong): you get this when you ping the server
 <br>
-**0xA0** (entered_game): 0xA0 followed by two bytes which are your u16 id
+**0xA0** (entered_game): 0xA0 followed by two bytes which are your u16 id, another two bytes which are your hue
 <br>
 **0xA1** (events): 0xA1 followed by a byte which defines the type of event (ie chat message)<br>
 if the byte is 0x1, it's a chat message followed by the id of the player who sent the message, the nick of the player, and then the content of the message
