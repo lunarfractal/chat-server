@@ -115,7 +115,7 @@ public:
                 }
 
                 player->room_id = room_id;
-                sendId(hdl, player->id);
+                sendId(hdl, player->id, player->hue);
                 s->player = player;
                 s->sent_nick_count++;
 
@@ -577,10 +577,11 @@ private:
         }
     }
 
-    void sendId(connection_hdl hdl, uint16_t id) {
-        uint8_t buffer[3];
+    void sendId(connection_hdl hdl, uint16_t id, uint16_t hue) {
+        uint8_t buffer[5];
         buffer[0] = net::opcode_entered_game;
         std::memcpy(&buffer[1], &id, sizeof(uint16_t));
+        std::memcpy(&buffer[3], &hue, 2);
         try {
             m_server.send(hdl, buffer, sizeof(buffer), websocketpp::frame::opcode::binary);
         } catch (websocketpp::exception const & e) {
