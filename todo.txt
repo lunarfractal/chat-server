@@ -10,4 +10,3 @@ fix memory leaks (did I?)
 
 todo:
 piano
-ughhh I absolutely hate webdev how am I gonna code a client for this
