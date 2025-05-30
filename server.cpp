@@ -241,7 +241,7 @@ public:
                     return;
                 }
                 logger::log("Player " + std::to_string((int)s->player->id) + " sent chat message", logger::Level::DEBUG);
-                dispatch_message(chat_message, s->player->id, s->player->room_id);
+                dispatch_message(chat_message, s->player->id, s->player->nick, s->player->room_id);
                 game_world.add_message(s->player->room_id, {
                     chat_message,
                     s->player->nick,
