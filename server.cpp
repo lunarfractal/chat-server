@@ -420,7 +420,6 @@ public:
                         }
 
                         if(player->hasInView(pair.second)) {
-                            uint8_t reason;
                             uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
