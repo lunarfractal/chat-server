@@ -547,14 +547,18 @@ private:
     std::unordered_map<connection_hdl, std::shared_ptr<net::session>, connection_hdl_hash, connection_hdl_equal> m_sessions;
 
 
-    void dispatch_message(const std::u16string &value, uint16_t id, std::string &room_id) {
-        const int size = 1 + 1 + 2 + 2 * value.length() + 2;
+    void dispatch_message(const std::u16string &value, uint16_t id, std::u16string &nick, std::string &room_id) {
+        const int size = 1 + 1 + 2 + 2 * nick.length() + 2 + 2 * value.length() + 2;
         std::vector<uint8_t> buffer(size);
         buffer[0] = net::opcode_events;
         int offset = 1;
         buffer[offset++] = 0x1;
         std::memcpy(&buffer[offset], &id, 2);
         offset += 2;
+        std::memcpy(&buffer[offset], nick.data(), 2 * nick.length());
+        offset += 2 * nick.length();
+        buffer[offset++] = 0x00;
+        buffer[offset++] = 0x00;
         std::memcpy(&buffer[offset], value.data(), 2 * value.length());
         offset += 2 * value.length();
         buffer[offset++] = 0x00;
