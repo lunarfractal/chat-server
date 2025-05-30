@@ -245,6 +245,7 @@ public:
                 game_world.add_message(s->player->room_id, {
                     chat_message,
                     s->player->nick,
+                    s->player->hue,
                     s->player->id,
                     std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()
                 });
@@ -262,6 +263,7 @@ public:
 
                 for(auto &msg: game_world.id2messages[s->player->room_id]) {
                     bufferSize += 2;
+                    bufferSize += 2;
                     bufferSize += 8;
                     bufferSize += 2 * msg.owner_nick.length() + 2;
                     bufferSize += 2 * msg.content.length() + 2;
@@ -274,6 +276,8 @@ public:
                 int offset = 1;
                 for(auto &msg: game_world.id2messages[s->player->room_id]) {
                     std::memcpy(&buffer[offset], &msg.owner_id, 2);
+                    offset += 2;
+                    std::memcpy(&buffer[offset], &msg.owner_hue, 2);
                     offset += 2;
                     std::memcpy(&buffer[offset], &msg.timestamp, 8);
                     offset += 8;
