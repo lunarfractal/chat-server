@@ -400,7 +400,9 @@ class Cursor {
   deleteNetwork(view, offset) {
     return offset;
   }
-}```
+}
+```
+
 <br>
 these are the util functions:
 ```js
