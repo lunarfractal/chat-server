@@ -120,7 +120,7 @@ public:
 
                 player->room_id = room_id;
 
-                if(s->sent_hello_bot) player.isBot = true;
+                if(s->sent_hello_bot) player->isBot = true;
                 sendId(hdl, player->id, player->hue);
                 s->player = player;
                 s->sent_nick_count++;
@@ -433,7 +433,7 @@ public:
                             uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
-                            buffer[offset++] = (player.isBot && creation == 0x0) ? 0x3 : creation;
+                            buffer[offset++] = (player->isBot && creation == 0x0) ? 0x3 : creation;
                             std::memcpy(&buffer[offset], &pair.second->x, 2);
                             offset += 2;
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
