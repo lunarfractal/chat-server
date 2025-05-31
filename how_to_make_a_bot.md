@@ -405,6 +405,7 @@ class Cursor {
 
 <br>
 these are the util functions:
+
 ```js
 function getString(view, offset) {
   var nick = "";
