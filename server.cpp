@@ -429,11 +429,17 @@ public:
                             continue;
                         }
 
-                        if(player->hasInView(pair.second)) {
-                            uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
+                        if(player->hasInView(pair.second)) { // check if they're in the same room (then it should be visible
+                            bool isNew = player->view.find(pair.second->id) == player->view.end(); // check if it's present
+                            uint8_t creation;
+                            if(isNew) {
+                                creation = player->isBot ? 0x3 : 0x0;
+                            } else {
+                                creation = 0x1;
+                            }
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
-                            buffer[offset++] = (player->isBot && creation == 0x0) ? 0x3 : creation;
+                            buffer[offset++] = creation;
                             std::memcpy(&buffer[offset], &pair.second->x, 2);
                             offset += 2;
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
