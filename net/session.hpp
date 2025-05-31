@@ -20,8 +20,7 @@ struct session {
     bool sent_hello = false;
     bool sent_hello_bot = false;
     uint16_t sent_nick_count = 0;
-
-    uint16_t screen_width = 0, screen_height = 0;
+    uint16_t screen_width = 1366, screen_height = 768;
 
     std::shared_ptr<game::Player> player;
 
