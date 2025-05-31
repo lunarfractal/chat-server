@@ -433,7 +433,7 @@ public:
                             bool isNew = player->view.find(pair.second->id) == player->view.end(); // check if it's present
                             uint8_t creation;
                             if(isNew) {
-                                creation = player->isBot ? 0x3 : 0x0;
+                                creation = pair.second->isBot ? 0x3 : 0x0;
                             } else {
                                 creation = 0x1;
                             }
