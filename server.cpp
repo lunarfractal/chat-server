@@ -541,6 +541,10 @@ public:
         m_server.run();
     }
 
+    void stop() {
+        m_server.stop_listening();
+    }
+
 private:
     game::GameWorld game_world;
 
@@ -639,4 +643,6 @@ int main() {
     WebSocketServer wsServer;
     wsServer.cycle_s();
     wsServer.run(8081);
+    wsServer.stop();
+    return 0;
 }
