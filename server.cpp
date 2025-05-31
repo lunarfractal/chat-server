@@ -350,7 +350,7 @@ public:
                             }
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
-                            buffer[offset++] = 0x0;
+                            buffer[offset++] = pair.second->isBot ? 0x3 : 0x0;
                             std::memcpy(&buffer[offset], &pair.second->x, 2);
                             offset += 2;
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
