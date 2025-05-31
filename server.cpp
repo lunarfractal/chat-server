@@ -433,7 +433,7 @@ public:
                             uint8_t creation = player->view.find(pair.second->id) == player->view.end() ? 0x0 : 0x1;
                             std::memcpy(&buffer[offset], &pair.first, 2);
                             offset += 2;
-                            buffer[offset++] = creation;
+                            buffer[offset++] = (player.isBot && creation == 0x0) ? 0x3 : creation;
                             std::memcpy(&buffer[offset], &pair.second->x, 2);
                             offset += 2;
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
