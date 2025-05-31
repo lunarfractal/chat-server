@@ -352,6 +352,7 @@ class Bot extends EventEmitter {
 ```
 <br>
 this is the Cursor class:
+
 ```js
 class Cursor {
   constructor(maybeShow) {
@@ -437,8 +438,10 @@ function getLobbyName(view, offset) {
   };
 }
 ```
+
 <br>
 this is how you'd do things:
+
 ```js
 let bot = new Bot();
 
