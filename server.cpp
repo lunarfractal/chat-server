@@ -614,8 +614,7 @@ private:
             try {
                 if (
                     m_server.get_con_from_hdl(pair.first)->get_state() == websocketpp::session::state::open
-                    && pair.second->sent_ping
-                    && pair.second->sent_hello
+                    && pair.second->did_enter_game()
                     && pair.second->player->room_id == room_id
                 ) {
                     m_server.send(pair.first, buffer, size, websocketpp::frame::opcode::binary);
