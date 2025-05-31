@@ -83,7 +83,11 @@ public:
             }
 
             case net::opcode_hi_bot:
-                logger::log("Received hi_bot opcode", logger::Level::DEBUG);
+                if(!s->sent_hello && !s->sent_hello_bot) {
+                    s->sent_hello = true;
+                    s->sent_hello_bot = true;
+                    logger::log("received hi from a bot");
+                }
                 break;
 
             case net::opcode_enter_game:
@@ -115,6 +119,8 @@ public:
                 }
 
                 player->room_id = room_id;
+
+                if(s->sent_hello_bot) player.isBot = true;
                 sendId(hdl, player->id, player->hue);
                 s->player = player;
                 s->sent_nick_count++;
