@@ -444,7 +444,7 @@ public:
                             offset += 2;
                             std::memcpy(&buffer[offset], &pair.second->y, 2);
                             offset += 2;
-                            if(creation == 0x0) {
+                            if(isNew) {
                                 player->view.insert(pair.second->id);
                                 std::memcpy(&buffer[offset], &pair.second->hue, 2);
                                 offset += 2;
