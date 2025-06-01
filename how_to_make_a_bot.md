@@ -456,30 +456,32 @@ function getLobbyName(view, offset) {
 this is how you'd make a bot
 
 ```js
-let bot = new Bot();
+let bot = new Bot(); // Create an instance of bot
 
-bot.on("open", () => {
+bot.on("open", () => { // when the bot connects to the server
   console.log('connected');
-  bot.sendNick("test bot");
-  bot.sendCursor(700, 400);
+  bot.sendNick("test bot"); // enter the game with the nickname "test bot"
+  bot.sendCursor(700, 400); // move the bot's cursor to 700, 400 (Screen is 1366x768)
+  // I'll allow bots to join multiple rooms, later. for now, you can use bot.changeRoom("your-room");
 });
 
-bot.on('cursor-create', (cursor) => {
-  bot.sendChat(cursor.nick + " entered the game!");
+bot.on('cursor-create', (cursor) => { // A new cursor entered the room/game
+  bot.sendChat(cursor.nick + " entered the room!");
 });
 
-bot.on('cursor-delete', (cursor) => {
+bot.on('cursor-delete', (cursor) => { // cursor left the room/game
   bot.sendChat(cursor.nick + " left the game.");
 });
 
-bot.on("chat-message", (msg) => {
+bot.on("chat-message", (msg) => { // Someone sent a message
+  if(msg.author.bot) return; // ignore if the message was sent by a bot
   if (msg.content.startsWith("t!")) {
-    let message = msg.content;
+    let message = msg.content; // Access the content of the message
     let command = message.substring(2);
 
     if (command === "ping") {
       const listener = (latency) => {
-        bot.sendChat("Pong! " + latency + "ms");
+        bot.sendChat("Pong! " + latency + "ms"); // this measures ping latency
         bot.off("pong", listener);
       };
 
@@ -496,13 +498,13 @@ bot.on("chat-message", (msg) => {
     }
     else if(command.startsWith("follow")) {
       let id = parseInt(command.substring(7));
-      let cursor = bot.cursors.get(id);
+      let cursor = bot.cursors.get(id); // get the user with that id
       if(cursor) {
         cursor.on('update', (newPos) => {
           bot.sendCursor(newPos.x, newPos.y);
         });
       }
-      else {
+      else { // if the id is invalid, follow the sender instead
         msg.author.on('update', (newPos) => {
           bot.sendCursor(newPos.x, newPos.y);
         });
