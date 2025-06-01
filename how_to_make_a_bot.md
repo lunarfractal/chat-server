@@ -1,5 +1,5 @@
 # Bot tutorial
-this is the bot class:
+here is the bot class:
 ```js
 class Bot extends EventEmitter {
   constructor() {
@@ -14,7 +14,7 @@ class Bot extends EventEmitter {
     this.webSocket = null;
 
     this.address =
-      "wss://4b1e-2406-8800-9014-420a-7b01-343-e6db-2ba4.ngrok-free.app/";
+      "wss://e72b-2406-8800-9014-420a-7b01-343-e6db-2ba4.ngrok-free.app/";
     this.hasConnection = false;
     this.sentHello = false;
     this.lastPing = 0;
@@ -59,6 +59,7 @@ class Bot extends EventEmitter {
   }
 
   onSocketOpen() {
+    this.hasConnection = true;
     this.hello();
     this.emit("open");
   }
@@ -95,15 +96,11 @@ class Bot extends EventEmitter {
         let res0 = getString(view, offset);
         let message = res0.nick;
         offset = res0.offset;
-        let color = this.cursors.get(id)?.hue || 240;
-        if (id == this.id) color = this.hue;
+        let author = this.cursors.get(id);
+        if (id == this.id) author = this;
         this.emit("chat-message", {
           content: message,
-          author: {
-            nick: nick,
-            id: id,
-            color: color,
-          },
+          author: author
         });
         break;
       }
@@ -147,7 +144,7 @@ class Bot extends EventEmitter {
         content: content,
         author: {
           id,
-          color: hue,
+          hue,
           nick,
         },
       });
@@ -214,7 +211,7 @@ class Bot extends EventEmitter {
     let op = view.getUint8(0);
     switch (op) {
       case this.OPCODE_PONG:
-        console.log("Pong", +new Date() - this.lastPing);
+        this.emit('pong', +new Date() - this.lastPing);
         break;
       case this.OPCODE_ENTERED_GAME:
         this.isInGame = true;
@@ -351,7 +348,7 @@ class Bot extends EventEmitter {
 }
 ```
 <br>
-this is the Cursor class:
+here is the Cursor class:
 
 ```js
 class Cursor {
@@ -443,38 +440,41 @@ function getLobbyName(view, offset) {
 ```
 
 <br>
-this is how you'd do things:
+this is how you'd make a bot
 
 ```js
 let bot = new Bot();
 
-bot.on('open', () => {
-  bot.sendNick('My Bot');
-  bot.sendCursor(700, 400); // move anywhere you want (1336x768 screen)
+bot.on("open", () => {
+  console.log('connected');
+  bot.ping();
+  bot.sendHello();
+  bot.sendNick("test bot");
+  bot.sendCursor(700, 400);
 });
 
-bot.on('chat-message', (msg) => {
-  /* 
-    msg contains:
-    content: the string which was sent
-    author:
-    an object which contains:
-      nick: the nickname of the person who sent the message
-      id: the id of the person who sent the message
-      color: the color of the person who sent the messge
-      (you can to `this.cursors.get(id)` to get the cursor object)
-  */
-  let message = msg.content;
-  if(message == '!ping') {
-    bot.sendChat('Pong!');
+bot.on("chat-message", (msg) => {
+  if (msg.content.startsWith("t!")) {
+    let message = msg.content;
+    let command = message.substring(2);
+
+    if (command === "ping") {
+      const listener = (latency) => {
+        bot.sendChat("Pong! " + latency + "ms");
+        bot.off("pong", listener);
+      };
+
+      bot.on("pong", listener);
+      bot.ping();
+    }
+    else if(command === "help") {
+      bot.sendChat(`Commands: help, ping, time, eval`);
+    }
+    else if (command === "time") {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      bot.sendChat("Current time: " + timeString);
+    }
   }
-});
-
-bot.list(); // list lobbies
-
-bot.on('lobbies', (lobbies) => {
-  lobbies.forEach((lobbyName) => {
-    console.log('lobby: ', lobbyName);
-  });
 });
 ```
