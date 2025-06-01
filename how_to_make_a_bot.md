@@ -166,6 +166,7 @@ class Bot extends EventEmitter {
           cursor.id = id;
           offset = cursor.updateNetwork(view, offset, true);
           this.cursors.set(id, cursor);
+          this.emit('cursor-create', cursor);
           break;
         }
 
@@ -177,6 +178,7 @@ class Bot extends EventEmitter {
           } else {
             console.log("cursor with id: " + id + " not found");
           }
+          this.emit('cursor-update', cursor);
           break;
         }
 
@@ -185,6 +187,8 @@ class Bot extends EventEmitter {
           let cursor = this.cursors.get(id);
           if (cursor) {
             offset = cursor.deleteNetwork(view, offset);
+            this.cursors.delete(id);
+            this.emit('cursor-delete', cursor);
           } else {
             console.log("unknown cursor: " + id + " can't delete it");
           }
@@ -196,6 +200,7 @@ class Bot extends EventEmitter {
           cursor.id = id;
           offset = cursor.updateNetwork(view, offset, true);
           this.cursors.set(id, cursor);
+          this.emit('cursor-create', cursor);
           break;
         }
 
@@ -350,8 +355,10 @@ class Bot extends EventEmitter {
 here is the Cursor class:
 
 ```js
-class Cursor {
+class Cursor extends EventEmitter {
   constructor(maybeShow) {
+    super();
+
     this.id = 0;
 
     this.x = 0;
@@ -385,15 +392,22 @@ class Cursor {
 
       this.nick = res.nick;
       this.hue = hue;
+
+      this.emit('nick', this.nick);
+      this.emit'hue', this.hue);
+      this.emit('create', {nick: this.nick, hue: this.hue, x, y});
     }
 
     this.x = x;
     this.y = y;
 
+    this.emit('update', {x, y});
+
     return offset;
   }
 
   deleteNetwork(view, offset) {
+    this.emit('delete');
     return offset;
   }
 }
@@ -446,10 +460,16 @@ let bot = new Bot();
 
 bot.on("open", () => {
   console.log('connected');
-  bot.ping();
-  bot.sendHello();
   bot.sendNick("test bot");
   bot.sendCursor(700, 400);
+});
+
+bot.on('cursor-create', (cursor) => {
+  bot.sendChat(cursor.nick + " entered the game!");
+});
+
+bot.on('cursor-delete', (cursor) => {
+  bot.sendChat(cursor.nick + " left the game.");
 });
 
 bot.on("chat-message", (msg) => {
@@ -467,12 +487,26 @@ bot.on("chat-message", (msg) => {
       bot.ping();
     }
     else if(command === "help") {
-      bot.sendChat(`Commands: help, ping, time, eval`);
+      bot.sendChat(`Commands: help, ping, time, follow`);
     }
     else if (command === "time") {
       const now = new Date();
       const timeString = now.toLocaleTimeString();
       bot.sendChat("Current time: " + timeString);
+    }
+    else if(command.startsWith("follow")) {
+      let id = parseInt(command.substring(7));
+      let cursor = bot.cursors.get(id);
+      if(cursor) {
+        cursor.on('update', (newPos) => {
+          bot.sendCursor(newPos.x, newPos.y);
+        });
+      }
+      else {
+        msg.author.on('update', (newPos) => {
+          bot.sendCursor(newPos.x, newPos.y);
+        });
+      }
     }
   }
 });
