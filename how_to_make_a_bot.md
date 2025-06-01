@@ -394,7 +394,7 @@ class Cursor extends EventEmitter {
       this.hue = hue;
 
       this.emit('nick', this.nick);
-      this.emit'hue', this.hue);
+      this.emit('hue', this.hue);
       this.emit('create', {nick: this.nick, hue: this.hue, x, y});
     }
 
