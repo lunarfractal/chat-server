@@ -4,6 +4,8 @@ here is the bot class:
 class Bot extends EventEmitter {
   constructor() {
     super();
+
+    this.webSocket = null;
     
     this.id = 0;
     this.nick = "";
@@ -11,10 +13,7 @@ class Bot extends EventEmitter {
 
     this.cursors = new Map();
 
-    this.webSocket = null;
-
-    this.address =
-      "wss://e72b-2406-8800-9014-420a-7b01-343-e6db-2ba4.ngrok-free.app/";
+    this.address = ""; // for now just replace this with the url on the website, I'll come up with an API for fetching this later
     this.hasConnection = false;
     this.sentHello = false;
     this.lastPing = 0;
